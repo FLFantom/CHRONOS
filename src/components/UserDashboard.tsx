@@ -318,6 +318,11 @@ const UserDashboard: React.FC = () => {
   const currentHour = currentTime.getHours();
   const greeting = getGreeting();
 
+  // Extract first name from full name
+  const getFirstName = (fullName: string) => {
+    return fullName.split(' ')[0];
+  };
+
   const handleAction = async (action: () => Promise<void>, loadingMessage: string, successMessage: string) => {
     setIsLoading(true);
     try {
@@ -770,7 +775,7 @@ const UserDashboard: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                  {greeting.text}, {user.name}! 
+                  {greeting.text}, {getFirstName(user.name)}! 
                   <span className="ml-2">
                     {currentHour < 12 ? '🌅' : currentHour < 17 ? '☀️' : currentHour < 22 ? '🌆' : '🌙'}
                   </span>

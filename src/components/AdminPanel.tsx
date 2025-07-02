@@ -38,7 +38,9 @@ import {
   Target,
   Award,
   Flame,
-  Snowflake
+  Snowflake,
+  FileText,
+  Database
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, timeLogsAPI, getTashkentTime, formatTashkentTime, convertToTashkentTime, MAX_BREAK_TIME } from '../services/api';
@@ -204,6 +206,7 @@ const AdminPanel: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [currentTime, setCurrentTime] = useState(getTashkentTime());
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'logs'>('overview');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -433,365 +436,476 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced statistics cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+        {/* Enhanced navigation tabs */}
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-2 mb-8 border border-white/50">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex-1 ${
+                activeTab === 'overview'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span>Обзор системы</span>
+              {activeTab === 'overview' && <Sparkles className="w-4 h-4 animate-pulse" />}
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex-1 ${
+                activeTab === 'users'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span>Управление пользователями</span>
+              <div className="bg-white/20 text-xs px-2 py-1 rounded-full font-bold">
+                {users.length}
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-blue-600">{stats.totalUsers}</div>
-                <div className="text-sm text-gray-500 font-medium">Всего пользователей</div>
+              {activeTab === 'users' && <Crown className="w-4 h-4 animate-pulse" />}
+            </button>
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex-1 ${
+                activeTab === 'logs'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+              }`}
+            >
+              <Activity className="w-5 h-5" />
+              <span>Журнал активности</span>
+              <div className="bg-white/20 text-xs px-2 py-1 rounded-full font-bold">
+                {logs.length}
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 rounded-lg p-2">
-              <TrendingUp className="w-4 h-4" />
-              <span className="font-medium">Активная система</span>
-            </div>
-          </div>
-
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-green-600"></div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-3 shadow-lg">
-                <Wifi className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-green-600">{stats.workingUsers}</div>
-                <div className="text-sm text-gray-500 font-medium">Работают</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 rounded-lg p-2">
-              <Activity className="w-4 h-4" />
-              <span className="font-medium">Активные сотрудники</span>
-            </div>
-          </div>
-
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
-                <Coffee className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-orange-600">{stats.onBreakUsers}</div>
-                <div className="text-sm text-gray-500 font-medium">На перерыве</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-lg p-2">
-              <Clock className="w-4 h-4" />
-              <span className="font-medium">Отдыхают</span>
-            </div>
-          </div>
-
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-500 to-gray-600"></div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl p-3 shadow-lg">
-                <WifiOff className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-gray-600">{stats.offlineUsers}</div>
-                <div className="text-sm text-gray-500 font-medium">Не в сети</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg p-2">
-              <Target className="w-4 h-4" />
-              <span className="font-medium">Офлайн</span>
-            </div>
+              {activeTab === 'logs' && <FileText className="w-4 h-4 animate-pulse" />}
+            </button>
           </div>
         </div>
 
-        {/* Enhanced users management section */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 mb-10 border border-white/50">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-3 shadow-lg">
-                <Users className="w-8 h-8 text-white" />
+        {/* Tab content */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            {/* Enhanced statistics cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-blue-600">{stats.totalUsers}</div>
+                    <div className="text-sm text-gray-500 font-medium">Всего пользователей</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 rounded-lg p-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="font-medium">Активная система</span>
+                </div>
               </div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Управление пользователями
-              </h2>
+
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-green-600"></div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-3 shadow-lg">
+                    <Wifi className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-green-600">{stats.workingUsers}</div>
+                    <div className="text-sm text-gray-500 font-medium">Работают</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 rounded-lg p-2">
+                  <Activity className="w-4 h-4" />
+                  <span className="font-medium">Активные сотрудники</span>
+                </div>
+              </div>
+
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
+                    <Coffee className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-orange-600">{stats.onBreakUsers}</div>
+                    <div className="text-sm text-gray-500 font-medium">На перерыве</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 rounded-lg p-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="font-medium">Отдыхают</span>
+                </div>
+              </div>
+
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-500 to-gray-600"></div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl p-3 shadow-lg">
+                    <WifiOff className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-gray-600">{stats.offlineUsers}</div>
+                    <div className="text-sm text-gray-500 font-medium">Не в сети</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg p-2">
+                  <Target className="w-4 h-4" />
+                  <span className="font-medium">Офлайн</span>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-4">
-              <button
-                onClick={loadData}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Обновить
-              </button>
+
+            {/* Quick overview */}
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/50">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3 shadow-lg">
+                  <Database className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Быстрый обзор системы
+                </h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">Активность сегодня</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                      <span className="text-gray-700 font-medium">Начали работу</span>
+                      <span className="font-bold text-green-600">
+                        {logs.filter(log => log.action === 'start_work').length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                      <span className="text-gray-700 font-medium">Взяли перерыв</span>
+                      <span className="font-bold text-orange-600">
+                        {logs.filter(log => log.action === 'start_break').length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                      <span className="text-gray-700 font-medium">Завершили работу</span>
+                      <span className="font-bold text-red-600">
+                        {logs.filter(log => log.action === 'end_work').length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">Система</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-gray-700 font-medium">Рабочие часы</span>
+                      <span className="font-bold text-blue-600">9:00 - 18:00</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                      <span className="text-gray-700 font-medium">Лимит перерыва</span>
+                      <span className="font-bold text-purple-600">1 час</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
+                      <span className="text-gray-700 font-medium">Часовой пояс</span>
+                      <span className="font-bold text-indigo-600">Ташкент (UTC+5)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Enhanced filters */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            <div className="flex-1 min-w-64">
+        {activeTab === 'users' && (
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/50">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-3 shadow-lg">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Управление пользователями
+                </h2>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={loadData}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Обновить
+                </button>
+              </div>
+            </div>
+
+            {/* Enhanced filters */}
+            <div className="flex flex-wrap gap-4 mb-8">
+              <div className="flex-1 min-w-64">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Поиск по имени или email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300"
+                  />
+                </div>
+              </div>
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Поиск по имени или email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300"
-                />
+                <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="pl-12 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 appearance-none cursor-pointer"
+                >
+                  <option value="all">Все статусы</option>
+                  <option value="working">Работают</option>
+                  <option value="on_break">На перерыве</option>
+                  <option value="offline">Не в сети</option>
+                </select>
               </div>
             </div>
-            <div className="relative">
-              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="pl-12 pr-8 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 appearance-none cursor-pointer"
-              >
-                <option value="all">Все статусы</option>
-                <option value="working">Работают</option>
-                <option value="on_break">На перерыве</option>
-                <option value="offline">Не в сети</option>
-              </select>
-            </div>
-          </div>
 
-          {/* Enhanced users table */}
-          <div className="overflow-x-auto rounded-2xl border border-gray-200">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Пользователь</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Статус</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Роль</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Время перерыва</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Действия</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
+            {/* Enhanced users table */}
+            <div className="overflow-x-auto rounded-2xl border border-gray-200">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex items-center justify-center gap-3">
-                        <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
-                        <span className="text-gray-500 font-medium">Загрузка пользователей...</span>
-                      </div>
-                    </td>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Пользователь</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Статус</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Роль</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Время перерыва</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Действия</th>
                   </tr>
-                ) : filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <Users className="w-12 h-12 text-gray-300" />
-                        <span className="text-gray-500 font-medium">Пользователи не найдены</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-lg ${
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                          <span className="text-gray-500 font-medium">Загрузка пользователей...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <Users className="w-12 h-12 text-gray-300" />
+                          <span className="text-gray-500 font-medium">Пользователи не найдены</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-200">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-lg ${
+                              user.role === 'admin' 
+                                ? 'bg-gradient-to-r from-purple-500 to-pink-600' 
+                                : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                            }`}>
+                              {user.role === 'admin' ? (
+                                <Crown className="w-5 h-5" />
+                              ) : (
+                                user.name.charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900 flex items-center gap-2">
+                                {user.name}
+                                {user.role === 'admin' && (
+                                  <Crown className="w-4 h-4 text-yellow-500" />
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(user.status)}`}>
+                            {getStatusIcon(user.status)}
+                            {user.status === 'working' ? 'Работает' : 
+                             user.status === 'on_break' ? 'На перерыве' : 'Не в сети'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
                             user.role === 'admin' 
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-600' 
-                              : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                              : 'bg-blue-100 text-blue-800 border border-blue-200'
                           }`}>
                             {user.role === 'admin' ? (
-                              <Crown className="w-5 h-5" />
+                              <>
+                                <Crown className="w-4 h-4" />
+                                Администратор
+                              </>
                             ) : (
-                              user.name.charAt(0).toUpperCase()
+                              <>
+                                <UserIcon className="w-4 h-4" />
+                                Пользователь
+                              </>
                             )}
                           </div>
-                          <div>
-                            <div className="font-semibold text-gray-900 flex items-center gap-2">
-                              {user.name}
-                              {user.role === 'admin' && (
-                                <Crown className="w-4 h-4 text-yellow-500" />
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm">
+                            {user.daily_break_time ? (
+                              <div className={`font-mono font-bold ${
+                                user.daily_break_time > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-900'
+                              }`}>
+                                {formatBreakDuration(user.daily_break_time)}
+                                {user.daily_break_time > MAX_BREAK_TIME && (
+                                  <div className="flex items-center gap-1 text-red-500 text-xs mt-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Превышение
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">00:00:00</span>
+                            )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(user.status)}`}>
-                          {getStatusIcon(user.status)}
-                          {user.status === 'working' ? 'Работает' : 
-                           user.status === 'on_break' ? 'На перерыве' : 'Не в сети'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                          user.role === 'admin' 
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200' 
-                            : 'bg-blue-100 text-blue-800 border border-blue-200'
-                        }`}>
-                          {user.role === 'admin' ? (
-                            <>
-                              <Crown className="w-4 h-4" />
-                              Администратор
-                            </>
-                          ) : (
-                            <>
-                              <UserIcon className="w-4 h-4" />
-                              Пользователь
-                            </>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          {user.daily_break_time ? (
-                            <div className={`font-mono font-bold ${
-                              user.daily_break_time > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-900'
-                            }`}>
-                              {formatBreakDuration(user.daily_break_time)}
-                              {user.daily_break_time > MAX_BREAK_TIME && (
-                                <div className="flex items-center gap-1 text-red-500 text-xs mt-1">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  Превышение
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">00:00:00</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => impersonateUser(user.id)}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 hover:scale-110"
-                            title="Войти как пользователь"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setEditModalOpen(true);
-                            }}
-                            className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 hover:scale-110"
-                            title="Редактировать"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleResetPassword(user.id)}
-                            className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-all duration-200 hover:scale-110"
-                            title="Сбросить пароль"
-                          >
-                            <KeyRound className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 hover:scale-110"
-                            title="Удалить"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => impersonateUser(user.id)}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200 hover:scale-110"
+                              title="Войти как пользователь"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setEditModalOpen(true);
+                              }}
+                              className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-all duration-200 hover:scale-110"
+                              title="Редактировать"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleResetPassword(user.id)}
+                              className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-all duration-200 hover:scale-110"
+                              title="Сбросить пароль"
+                            >
+                              <KeyRound className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all duration-200 hover:scale-110"
+                              title="Удалить"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Enhanced activity logs section */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/50">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3 shadow-lg">
-                <Activity className="w-8 h-8 text-white" />
+        {activeTab === 'logs' && (
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/50">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-3 shadow-lg">
+                  <Activity className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Журнал активности
+                </h2>
               </div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Журнал активности
-              </h2>
+              <div className="flex gap-4">
+                <select
+                  value={logPeriod}
+                  onChange={(e) => setLogPeriod(e.target.value as any)}
+                  className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300"
+                >
+                  <option value="day">Сегодня</option>
+                  <option value="month">Этот месяц</option>
+                  <option value="all">Все время</option>
+                </select>
+              </div>
             </div>
-            <div className="flex gap-4">
-              <select
-                value={logPeriod}
-                onChange={(e) => setLogPeriod(e.target.value as any)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300"
-              >
-                <option value="day">Сегодня</option>
-                <option value="month">Этот месяц</option>
-                <option value="all">Все время</option>
-              </select>
-            </div>
-          </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-200">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Пользователь</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Действие</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Время</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
+            <div className="overflow-x-auto rounded-2xl border border-gray-200">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <td colSpan={3} className="px-6 py-12 text-center">
-                      <div className="flex items-center justify-center gap-3">
-                        <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-                        <span className="text-gray-500 font-medium">Загрузка логов...</span>
-                      </div>
-                    </td>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Пользователь</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Действие</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Время</th>
                   </tr>
-                ) : logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <Activity className="w-12 h-12 text-gray-300" />
-                        <span className="text-gray-500 font-medium">Нет записей за выбранный период</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  logs.slice(0, 50).map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-gray-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                            {log.users?.name?.charAt(0).toUpperCase() || '?'}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-gray-900">{log.users?.name || 'Неизвестный'}</div>
-                            <div className="text-sm text-gray-500">{log.users?.email || ''}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getActionColor(log.action)}`}>
-                          {getActionText(log.action)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 font-mono">
-                          {formatTashkentTime(convertToTashkentTime(log.timestamp))}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-12 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                          <span className="text-gray-500 font-medium">Загрузка логов...</span>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {logs.length > 50 && (
-            <div className="mt-6 text-center">
-              <p className="text-gray-500 text-sm">
-                Показано первые 50 записей из {logs.length}
-              </p>
+                  ) : logs.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <Activity className="w-12 h-12 text-gray-300" />
+                          <span className="text-gray-500 font-medium">Нет записей за выбранный период</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    logs.slice(0, 100).map((log) => (
+                      <tr key={log.id} className="hover:bg-gray-50 transition-colors duration-200">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-gray-500 to-gray-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                              {log.users?.name?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{log.users?.name || 'Неизвестный'}</div>
+                              <div className="text-sm text-gray-500">{log.users?.email || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getActionColor(log.action)}`}>
+                            {getActionText(log.action)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 font-mono">
+                            {formatTashkentTime(convertToTashkentTime(log.timestamp))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+            
+            {logs.length > 100 && (
+              <div className="mt-6 text-center">
+                <p className="text-gray-500 text-sm">
+                  Показано первые 100 записей из {logs.length}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Edit User Modal */}
