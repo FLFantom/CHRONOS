@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import { User, LoginCredentials, TimeStats, TimeLog } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -10,46 +11,47 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Simple hash function for demo purposes
-// In production, use bcrypt or similar
-const hashPassword = (password: string): string => {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(16);
+// Hash password using bcrypt
+const hashPassword = async (password: string): Promise<string> => {
+  const saltRounds = 10;
+  return await bcrypt.hash(password, saltRounds);
+};
+
+// Verify password using bcrypt
+const verifyPassword = async (password: string, hashedPassword: string): Promise<boolean> => {
+  return await bcrypt.compare(password, hashedPassword);
 };
 
 export const authAPI = {
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
     try {
       // Get user by email
-      const { data: users, error: userError } = await supabase
+      const { data: user, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('email', credentials.email)
         .single();
 
-      if (userError || !users) {
-        throw new Error('Пользователь не найден');
+      if (userError || !user) {
+        throw new Error('Неверный email или пароль');
       }
 
-      // For demo purposes, we'll use simple password comparison
-      // In production, you should use proper password hashing
-      const validPasswords: Record<string, string> = {
-        'admin@example.com': 'admin123',
-        'hvlad@example.com': 'user123',
-      };
-
-      if (validPasswords[credentials.email] !== credentials.password) {
-        throw new Error('Неверный пароль');
+      // Verify password
+      const isValidPassword = await verifyPassword(credentials.password, user.password);
+      
+      if (!isValidPassword) {
+        throw new Error('Неверный email или пароль');
       }
+
+      // Generate simple JWT-like token (in production use proper JWT)
+      const token = `jwt-token-${user.id}-${Date.now()}`;
+
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
 
       return {
-        user: users,
-        token: 'jwt-token-' + users.id,
+        user: userWithoutPassword as User,
+        token,
       };
     } catch (error) {
       throw error;
@@ -104,8 +106,11 @@ export const usersAPI = {
             dailyBreakTime += currentBreakDuration;
           }
 
+          // Remove password from response
+          const { password, ...userWithoutPassword } = user;
+
           return {
-            ...user,
+            ...userWithoutPassword,
             daily_break_time: dailyBreakTime,
           };
         })
@@ -152,8 +157,11 @@ export const usersAPI = {
         }
       });
 
+      // Remove password from response
+      const { password, ...userWithoutPassword } = data;
+
       return {
-        ...data,
+        ...userWithoutPassword,
         daily_break_time: dailyBreakTime,
       };
     } catch (error) {
@@ -197,7 +205,10 @@ export const usersAPI = {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = data;
+      return userWithoutPassword as User;
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
@@ -221,7 +232,7 @@ export const usersAPI = {
   async resetPassword(id: number, newPassword: string): Promise<void> {
     try {
       // Hash the password before storing
-      const hashedPassword = hashPassword(newPassword);
+      const hashedPassword = await hashPassword(newPassword);
       
       const { error } = await supabase
         .from('users')
@@ -243,7 +254,7 @@ export const usersAPI = {
       // Get current user data to verify current password
       const { data: user, error: getUserError } = await supabase
         .from('users')
-        .select('password, email')
+        .select('password')
         .eq('id', userId)
         .single();
 
@@ -251,22 +262,15 @@ export const usersAPI = {
         throw new Error('Пользователь не найден');
       }
 
-      // For demo accounts, verify current password
-      const validPasswords: Record<string, string> = {
-        'admin@example.com': 'admin123',
-        'hvlad@example.com': 'user123',
-      };
-
-      // Check if it's a demo account or verify hashed password
-      const isValidCurrentPassword = validPasswords[user.email] === currentPassword || 
-                                   user.password === hashPassword(currentPassword);
+      // Verify current password
+      const isValidCurrentPassword = await verifyPassword(currentPassword, user.password);
 
       if (!isValidCurrentPassword) {
         throw new Error('Неверный текущий пароль');
       }
 
       // Hash the new password before storing
-      const hashedPassword = hashPassword(newPassword);
+      const hashedPassword = await hashPassword(newPassword);
       
       const { error } = await supabase
         .from('users')

@@ -110,7 +110,6 @@ const LoginForm: React.FC = () => {
             {isSubmitting ? 'Вход...' : 'Войти'}
           </button>
         </form>
-
       </div>
     </div>
   );
