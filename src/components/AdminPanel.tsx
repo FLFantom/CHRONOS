@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Clock,
   Coffee,
-  Timer
+  Timer,
+  Search
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime, convertToTashkentTime } from '../services/api';
@@ -611,6 +612,8 @@ const AdminPanel: React.FC = () => {
   const { user, logout, impersonateUser } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<TimeStats>({
     totalUsers: 0,
     workingUsers: 0,
@@ -631,6 +634,19 @@ const AdminPanel: React.FC = () => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Filter users based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user =>
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [users, searchQuery]);
 
   const fetchData = async () => {
     try {
@@ -774,6 +790,10 @@ const AdminPanel: React.FC = () => {
     return `${hours}ч ${minutes}м`;
   };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
   if (!user || user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -892,11 +912,11 @@ const AdminPanel: React.FC = () => {
         {/* Enhanced employees table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Users className="w-6 h-6 text-blue-600" />
                 <h2 className="text-xl font-bold text-gray-800">
-                  Список сотрудников ({users.length})
+                  Список сотрудников ({filteredUsers.length}{searchQuery && ` из ${users.length}`})
                 </h2>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -904,6 +924,40 @@ const AdminPanel: React.FC = () => {
                 <span>Автообновление каждые 30 секунд</span>
               </div>
             </div>
+
+            {/* Search bar */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Поиск по имени или email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {searchQuery && (
+              <div className="mt-3 text-sm text-gray-600">
+                {filteredUsers.length === 0 ? (
+                  <span className="text-red-600">Сотрудники не найдены</span>
+                ) : (
+                  <span>
+                    Найдено: <span className="font-medium">{filteredUsers.length}</span> сотрудник{filteredUsers.length === 1 ? '' : filteredUsers.length < 5 ? 'а' : 'ов'}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -931,86 +985,107 @@ const AdminPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {users.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="font-medium text-gray-800">
-                          {employee.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {employee.email}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(employee.status)}`}>
-                        {employee.status === 'working' && <Timer className="w-3 h-3" />}
-                        {employee.status === 'on_break' && <Coffee className="w-3 h-3" />}
-                        {getStatusText(employee.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatBreakTime(employee)}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`${
-                        (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600 font-semibold' : 'text-gray-600'
-                      }`}>
-                        {formatDailyBreakTime(employee.daily_break_time)}
-                        {(employee.daily_break_time || 0) > MAX_BREAK_TIME && (
-                          <span className="ml-1 text-xs">(превышение)</span>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="text-gray-500">
+                        {searchQuery ? (
+                          <div>
+                            <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                            <p className="text-lg font-medium mb-2">Сотрудники не найдены</p>
+                            <p className="text-sm">Попробуйте изменить поисковый запрос</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                            <p className="text-lg font-medium">Нет сотрудников</p>
+                          </div>
                         )}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                        employee.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleImpersonateUser(employee.id)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Войти как пользователь"
-                        >
-                          <LoginIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditUser(employee)}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Редактировать"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleViewLogs(employee)}
-                          className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
-                          title="Логи"
-                        >
-                          <Calendar className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleResetPassword(employee)}
-                          className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
-                          title="Сбросить пароль"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(employee)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Удалить"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredUsers.map((employee) => (
+                    <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="font-medium text-gray-800">
+                            {employee.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {employee.email}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(employee.status)}`}>
+                          {employee.status === 'working' && <Timer className="w-3 h-3" />}
+                          {employee.status === 'on_break' && <Coffee className="w-3 h-3" />}
+                          {getStatusText(employee.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {formatBreakTime(employee)}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`${
+                          (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600 font-semibold' : 'text-gray-600'
+                        }`}>
+                          {formatDailyBreakTime(employee.daily_break_time)}
+                          {(employee.daily_break_time || 0) > MAX_BREAK_TIME && (
+                            <span className="ml-1 text-xs">(превышение)</span>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleImpersonateUser(employee.id)}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="Войти как пользователь"
+                          >
+                            <LoginIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditUser(employee)}
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Редактировать"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleViewLogs(employee)}
+                            className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
+                            title="Логи"
+                          >
+                            <Calendar className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleResetPassword(employee)}
+                            className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                            title="Сбросить пароль"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(employee)}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
