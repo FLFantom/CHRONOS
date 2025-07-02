@@ -18,7 +18,12 @@ import {
   Clock,
   Coffee,
   Timer,
-  Search
+  Search,
+  Sparkles,
+  TrendingUp,
+  Activity,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime, convertToTashkentTime } from '../services/api';
@@ -58,70 +63,80 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">Редактировать сотрудника</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 relative overflow-hidden">
+        {/* Decorative gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-2">
+              <Edit className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Редактировать сотрудника
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Имя
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Email
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Роль
             </label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as 'user' | 'admin' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
             >
               <option value="user">Пользователь</option>
               <option value="admin">Админ</option>
             </select>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-6">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700"
             >
               Отмена
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
             >
               Сохранить
             </button>
@@ -175,23 +190,38 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ user, isOpen, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">
-            Сброс пароля для {user.name}
-          </h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 relative overflow-hidden">
+        {/* Decorative gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-red-600"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-xl p-2">
+              <RotateCcw className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Сброс пароля
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-200">
+          <p className="text-orange-800 font-medium">
+            Сброс пароля для: <span className="font-bold">{user.name}</span>
+          </p>
+          <p className="text-orange-600 text-sm">{user.email}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Новый пароль
             </label>
             <div className="relative">
@@ -199,7 +229,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ user, isOpen, o
                 type={showPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                 placeholder="Введите новый пароль"
                 required
                 minLength={6}
@@ -207,15 +237,15 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ user, isOpen, o
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Подтвердите новый пароль
             </label>
             <div className="relative">
@@ -223,7 +253,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ user, isOpen, o
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                 placeholder="Подтвердите пароль"
                 required
                 minLength={6}
@@ -231,24 +261,24 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ user, isOpen, o
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-6">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700"
             >
               Отмена
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl hover:from-orange-600 hover:to-red-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
             >
               Сбросить пароль
             </button>
@@ -270,41 +300,58 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ user, isOpen, o
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-red-600">Удалить сотрудника</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 relative overflow-hidden">
+        {/* Decorative gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-red-600"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-2">
+              <Trash2 className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-red-600">Удалить сотрудника</h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="mb-6">
-          <p className="text-gray-700 mb-4">
+        <div className="mb-8">
+          <p className="text-gray-700 mb-6 text-lg">
             Вы точно хотите удалить этого сотрудника?
           </p>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="font-medium text-red-800">{user.name}</div>
-            <div className="text-red-600 text-sm">{user.email}</div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+            <div className="font-bold text-red-800 text-lg">{user.name}</div>
+            <div className="text-red-600">{user.email}</div>
+            <div className="text-red-500 text-sm mt-2">
+              Роль: {user.role === 'admin' ? 'Администратор' : 'Пользователь'}
+            </div>
           </div>
-          <p className="text-red-600 text-sm mt-2">
-            ⚠️ Это действие нельзя отменить. Все данные пользователя будут удалены.
-          </p>
+          <div className="mt-6 p-4 bg-red-100 border border-red-300 rounded-xl">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-semibold">Внимание!</span>
+            </div>
+            <p className="text-red-600 text-sm mt-2">
+              Это действие нельзя отменить. Все данные пользователя будут удалены навсегда.
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700"
           >
             Отмена
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           >
             Удалить
           </button>
@@ -357,11 +404,11 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'start_work': return 'bg-green-100 text-green-800';
-      case 'start_break': return 'bg-orange-100 text-orange-800';
-      case 'end_break': return 'bg-blue-100 text-blue-800';
-      case 'end_work': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'start_work': return 'bg-green-100 text-green-800 border-green-200';
+      case 'start_break': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'end_break': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'end_work': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -373,26 +420,34 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
   if (!isOpen || !user) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">
-            Логи активности - {user.name}
-          </h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-5xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-100">
+        {/* Decorative gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-600"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-2">
+              <Calendar className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Логи активности - {user.name}
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-3 mb-6">
           <button
             onClick={() => setPeriod('day')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-6 py-3 rounded-xl transition-all duration-200 font-medium ${
               period === 'day' 
-                ? 'bg-blue-500 text-white' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -400,9 +455,9 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
           </button>
           <button
             onClick={() => setPeriod('month')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-6 py-3 rounded-xl transition-all duration-200 font-medium ${
               period === 'month' 
-                ? 'bg-blue-500 text-white' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -410,9 +465,9 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
           </button>
           <button
             onClick={() => setPeriod('all')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-6 py-3 rounded-xl transition-all duration-200 font-medium ${
               period === 'all' 
-                ? 'bg-blue-500 text-white' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -420,25 +475,27 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="overflow-y-auto max-h-96">
+        <div className="overflow-y-auto max-h-96 bg-gray-50 rounded-2xl p-4">
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Загрузка...</p>
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">Загрузка логов...</p>
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Нет данных за выбранный период</p>
+            <div className="text-center py-12">
+              <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-600 font-medium text-lg">Нет данных за выбранный период</p>
+              <p className="text-gray-500 text-sm">Попробуйте выбрать другой период</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {logs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getActionColor(log.action)}`}>
+                <div key={log.id} className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-4">
+                    <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${getActionColor(log.action)}`}>
                       {getActionText(log.action)}
                     </span>
-                    <span className="text-gray-600">
+                    <span className="text-gray-600 font-medium">
                       {formatLogTime(log.timestamp)}
                     </span>
                   </div>
@@ -448,10 +505,10 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
           )}
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            className="px-6 py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           >
             Закрыть
           </button>
@@ -501,11 +558,11 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'start_work': return 'bg-green-100 text-green-800';
-      case 'start_break': return 'bg-orange-100 text-orange-800';
-      case 'end_break': return 'bg-blue-100 text-blue-800';
-      case 'end_work': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'start_work': return 'bg-green-100 text-green-800 border-green-200';
+      case 'start_break': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'end_break': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'end_work': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -517,26 +574,34 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-6xl max-h-[80vh] overflow-hidden shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800">
-            Все логи активности
-          </h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-6xl max-h-[85vh] overflow-hidden shadow-2xl border border-gray-100">
+        {/* Decorative gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-blue-600"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-xl p-2">
+              <FileText className="w-6 h-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Все логи активности
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-3 mb-6">
           <button
             onClick={() => setPeriod('day')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-6 py-3 rounded-xl transition-all duration-200 font-medium ${
               period === 'day' 
-                ? 'bg-blue-500 text-white' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -544,9 +609,9 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
           </button>
           <button
             onClick={() => setPeriod('month')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-6 py-3 rounded-xl transition-all duration-200 font-medium ${
               period === 'month' 
-                ? 'bg-blue-500 text-white' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -554,9 +619,9 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
           </button>
           <button
             onClick={() => setPeriod('all')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`px-6 py-3 rounded-xl transition-all duration-200 font-medium ${
               period === 'all' 
-                ? 'bg-blue-500 text-white' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -564,28 +629,30 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="overflow-y-auto max-h-96">
+        <div className="overflow-y-auto max-h-96 bg-gray-50 rounded-2xl p-4">
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Загрузка...</p>
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">Загрузка логов...</p>
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Нет данных за выбранный период</p>
+            <div className="text-center py-12">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-600 font-medium text-lg">Нет данных за выбранный период</p>
+              <p className="text-gray-500 text-sm">Попробуйте выбрать другой период</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {logs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="font-medium text-gray-800 min-w-[150px]">
+                <div key={log.id} className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center gap-4">
+                    <div className="font-semibold text-gray-800 min-w-[180px] bg-gray-50 px-3 py-2 rounded-lg">
                       {log.users?.name || 'Неизвестный пользователь'}
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getActionColor(log.action)}`}>
+                    <span className={`px-4 py-2 rounded-lg text-sm font-semibold border ${getActionColor(log.action)}`}>
                       {getActionText(log.action)}
                     </span>
-                    <span className="text-gray-600">
+                    <span className="text-gray-600 font-medium">
                       {formatLogTime(log.timestamp)}
                     </span>
                   </div>
@@ -595,10 +662,10 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            className="px-6 py-3 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           >
             Закрыть
           </button>
@@ -744,11 +811,11 @@ const AdminPanel: React.FC = () => {
   const getStatusColor = (status: User['status']) => {
     switch (status) {
       case 'working':
-        return 'text-green-600 bg-green-100';
+        return 'text-green-600 bg-green-100 border-green-200';
       case 'on_break':
-        return 'text-orange-600 bg-orange-100';
+        return 'text-orange-600 bg-orange-100 border-orange-200';
       default:
-        return 'text-gray-600 bg-gray-100';
+        return 'text-gray-600 bg-gray-100 border-gray-200';
     }
   };
 
@@ -796,12 +863,15 @@ const AdminPanel: React.FC = () => {
 
   if (!user || user.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
+        <div className="text-center bg-white rounded-3xl p-12 shadow-2xl border border-red-200">
+          <div className="bg-red-500 rounded-2xl w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">
             Доступ запрещен
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-lg">
             У вас нет прав для доступа к админ-панели
           </p>
         </div>
@@ -810,28 +880,36 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 relative overflow-hidden">
+      {/* Enhanced animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-48 h-48 bg-purple-200 rounded-full opacity-15 animate-bounce"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full opacity-5 animate-pulse"></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Enhanced header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-center mb-10">
+          <div className="flex items-center gap-6">
             <button
               onClick={() => navigate('/')}
-              className="bg-gray-500 rounded-full w-12 h-12 flex items-center justify-center hover:bg-gray-600 transition-colors shadow-lg"
+              className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-2xl w-16 h-16 flex items-center justify-center hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105"
             >
-              <ArrowLeft className="w-6 h-6 text-white" />
+              <ArrowLeft className="w-8 h-8 text-white" />
             </button>
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-16 h-16 flex items-center justify-center shadow-lg">
-              <Settings className="w-8 h-8 text-white" />
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl">
+              <Settings className="w-10 h-10 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 flex items-center gap-3">
                 Админ-панель
+                <Sparkles className="w-10 h-10 text-purple-500 animate-pulse" />
               </h1>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600 text-xl">
                 Управление сотрудниками и учет рабочего времени
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-gray-500 mt-2 bg-gray-100 rounded-lg px-4 py-2 inline-block">
                 Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 (Ташкентское время) | Лимит перерыва: 1 час
               </p>
             </div>
@@ -840,120 +918,120 @@ const AdminPanel: React.FC = () => {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               Обновить
             </button>
             <button 
               onClick={() => setAllLogsModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-5 h-5" />
               Все логи
             </button>
             <button
               onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-5 h-5" />
               Выйти
             </button>
           </div>
         </div>
 
         {/* Enhanced stats cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-2xl p-6 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">На работе</h3>
-              <div className="bg-white bg-opacity-20 rounded-full p-2">
-                <Users className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+          <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-3xl p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-xl">На работе</h3>
+              <div className="bg-white bg-opacity-20 rounded-2xl p-3">
+                <UserCheck className="w-8 h-8" />
               </div>
             </div>
-            <div className="text-3xl font-bold">{stats.workingUsers}</div>
-            <p className="text-green-100 text-sm">активных сотрудников</p>
+            <div className="text-4xl font-bold mb-2">{stats.workingUsers}</div>
+            <p className="text-green-100 font-medium">активных сотрудников</p>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">На перерыве</h3>
-              <div className="bg-white bg-opacity-20 rounded-full p-2">
-                <Coffee className="w-6 h-6" />
+          <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-xl">На перерыве</h3>
+              <div className="bg-white bg-opacity-20 rounded-2xl p-3">
+                <Coffee className="w-8 h-8" />
               </div>
             </div>
-            <div className="text-3xl font-bold">{stats.onBreakUsers}</div>
-            <p className="text-orange-100 text-sm">в перерыве</p>
+            <div className="text-4xl font-bold mb-2">{stats.onBreakUsers}</div>
+            <p className="text-orange-100 font-medium">в перерыве</p>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-400 to-gray-600 rounded-2xl p-6 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Не в сети</h3>
-              <div className="bg-white bg-opacity-20 rounded-full p-2">
-                <Users className="w-6 h-6" />
+          <div className="bg-gradient-to-br from-gray-400 to-gray-600 rounded-3xl p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-xl">Не в сети</h3>
+              <div className="bg-white bg-opacity-20 rounded-2xl p-3">
+                <UserX className="w-8 h-8" />
               </div>
             </div>
-            <div className="text-3xl font-bold">{stats.offlineUsers}</div>
-            <p className="text-gray-100 text-sm">офлайн</p>
+            <div className="text-4xl font-bold mb-2">{stats.offlineUsers}</div>
+            <p className="text-gray-100 font-medium">офлайн</p>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Всего</h3>
-              <div className="bg-white bg-opacity-20 rounded-full p-2">
-                <Users className="w-6 h-6" />
+          <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-3xl p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-xl">Всего</h3>
+              <div className="bg-white bg-opacity-20 rounded-2xl p-3">
+                <Users className="w-8 h-8" />
               </div>
             </div>
-            <div className="text-3xl font-bold">{stats.totalUsers}</div>
-            <p className="text-blue-100 text-sm">сотрудников</p>
+            <div className="text-4xl font-bold mb-2">{stats.totalUsers}</div>
+            <p className="text-blue-100 font-medium">сотрудников</p>
           </div>
         </div>
 
         {/* Enhanced employees table */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Users className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-bold text-gray-800">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
+          <div className="p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <Users className="w-8 h-8 text-blue-600" />
+                <h2 className="text-3xl font-bold text-gray-800">
                   Список сотрудников ({filteredUsers.length}{searchQuery && ` из ${users.length}`})
                 </h2>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Clock className="w-4 h-4" />
-                <span>Автообновление каждые 30 секунд</span>
+              <div className="flex items-center gap-3 text-gray-500 bg-white/60 rounded-xl px-4 py-2">
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">Автообновление каждые 30 секунд</span>
               </div>
             </div>
 
-            {/* Search bar */}
+            {/* Enhanced search bar */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-6 w-6 text-gray-400" />
               </div>
               <input
                 type="text"
                 placeholder="Поиск по имени или email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                className="w-full pl-12 pr-12 py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm shadow-lg text-lg"
               />
               {searchQuery && (
                 <button
                   onClick={clearSearch}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-6 w-6" />
                 </button>
               )}
             </div>
 
             {searchQuery && (
-              <div className="mt-3 text-sm text-gray-600">
+              <div className="mt-4 text-gray-600 bg-white/60 rounded-xl px-4 py-3">
                 {filteredUsers.length === 0 ? (
-                  <span className="text-red-600">Сотрудники не найдены</span>
+                  <span className="text-red-600 font-medium">Сотрудники не найдены</span>
                 ) : (
-                  <span>
-                    Найдено: <span className="font-medium">{filteredUsers.length}</span> сотрудник{filteredUsers.length === 1 ? '' : filteredUsers.length < 5 ? 'а' : 'ов'}
+                  <span className="font-medium">
+                    Найдено: <span className="text-blue-600 font-bold">{filteredUsers.length}</span> сотрудник{filteredUsers.length === 1 ? '' : filteredUsers.length < 5 ? 'а' : 'ов'}
                   </span>
                 )}
               </div>
@@ -962,24 +1040,24 @@ const AdminPanel: React.FC = () => {
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50/80 backdrop-blur-sm">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase">
+                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                     Сотрудник
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase">
+                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                     Статус
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase">
+                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                     Текущий перерыв
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase">
+                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                     Перерыв за день
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase">
+                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                     Роль
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase">
+                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
                     Действия
                   </th>
                 </tr>
@@ -987,18 +1065,18 @@ const AdminPanel: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-8 py-16 text-center">
                       <div className="text-gray-500">
                         {searchQuery ? (
                           <div>
-                            <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                            <p className="text-lg font-medium mb-2">Сотрудники не найдены</p>
-                            <p className="text-sm">Попробуйте изменить поисковый запрос</p>
+                            <Search className="w-16 h-16 mx-auto mb-6 text-gray-300" />
+                            <p className="text-2xl font-bold mb-3">Сотрудники не найдены</p>
+                            <p className="text-lg">Попробуйте изменить поисковый запрос</p>
                           </div>
                         ) : (
                           <div>
-                            <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                            <p className="text-lg font-medium">Нет сотрудников</p>
+                            <Users className="w-16 h-16 mx-auto mb-6 text-gray-300" />
+                            <p className="text-2xl font-bold">Нет сотрудников</p>
                           </div>
                         )}
                       </div>
@@ -1006,80 +1084,80 @@ const AdminPanel: React.FC = () => {
                   </tr>
                 ) : (
                   filteredUsers.map((employee) => (
-                    <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={employee.id} className="hover:bg-gray-50/80 transition-all duration-200">
+                      <td className="px-8 py-6">
                         <div>
-                          <div className="font-medium text-gray-800">
+                          <div className="font-bold text-gray-800 text-lg">
                             {employee.name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-gray-500 font-medium">
                             {employee.email}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(employee.status)}`}>
-                          {employee.status === 'working' && <Timer className="w-3 h-3" />}
-                          {employee.status === 'on_break' && <Coffee className="w-3 h-3" />}
+                      <td className="px-8 py-6">
+                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border ${getStatusColor(employee.status)}`}>
+                          {employee.status === 'working' && <Timer className="w-4 h-4" />}
+                          {employee.status === 'on_break' && <Coffee className="w-4 h-4" />}
                           {getStatusText(employee.status)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-8 py-6 text-gray-600 font-medium">
                         {formatBreakTime(employee)}
                       </td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`${
-                          (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600 font-semibold' : 'text-gray-600'
+                      <td className="px-8 py-6">
+                        <span className={`font-bold ${
+                          (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-600'
                         }`}>
                           {formatDailyBreakTime(employee.daily_break_time)}
                           {(employee.daily_break_time || 0) > MAX_BREAK_TIME && (
-                            <span className="ml-1 text-xs">(превышение)</span>
+                            <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg">(превышение)</span>
                           )}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                      <td className="px-8 py-6">
+                        <span className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold border ${
+                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'
                         }`}>
                           {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-8 py-6">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleImpersonateUser(employee.id)}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            className="p-3 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
                             title="Войти как пользователь"
                           >
-                            <LoginIcon className="w-4 h-4" />
+                            <LoginIcon className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleEditUser(employee)}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
                             title="Редактировать"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleViewLogs(employee)}
-                            className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
+                            className="p-3 text-purple-600 hover:bg-purple-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
                             title="Логи"
                           >
-                            <Calendar className="w-4 h-4" />
+                            <Calendar className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleResetPassword(employee)}
-                            className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                            className="p-3 text-orange-600 hover:bg-orange-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
                             title="Сбросить пароль"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            <RotateCcw className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(employee)}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                            className="p-3 text-red-600 hover:bg-red-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
                             title="Удалить"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
                       </td>
