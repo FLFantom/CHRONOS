@@ -197,8 +197,10 @@ const UserDashboard: React.FC = () => {
       setCurrentTime(tashkentTime);
       
       if (breakStartTime) {
-        const duration = Math.floor((Date.now() - breakStartTime.getTime()) / 1000);
-        setCurrentBreakDuration(duration);
+        // Calculate duration from break start time to current Tashkent time
+        const currentTashkentTime = getTashkentTime();
+        const duration = Math.floor((currentTashkentTime.getTime() - breakStartTime.getTime()) / 1000);
+        setCurrentBreakDuration(Math.max(0, duration));
       }
     }, 1000);
 
@@ -208,7 +210,14 @@ const UserDashboard: React.FC = () => {
   useEffect(() => {
     // Initialize break time if user is on break
     if (user?.status === 'on_break' && user.break_start_time) {
-      setBreakStartTime(new Date(user.break_start_time));
+      // Convert break start time to Tashkent time
+      const breakStart = convertToTashkentTime(new Date(user.break_start_time));
+      setBreakStartTime(breakStart);
+      
+      // Calculate initial duration
+      const currentTashkentTime = getTashkentTime();
+      const initialDuration = Math.floor((currentTashkentTime.getTime() - breakStart.getTime()) / 1000);
+      setCurrentBreakDuration(Math.max(0, initialDuration));
     } else {
       setBreakStartTime(null);
       setCurrentBreakDuration(0);
@@ -251,6 +260,7 @@ const UserDashboard: React.FC = () => {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Format current break duration - only shows time since break started
   const formatCurrentBreakDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -285,7 +295,9 @@ const UserDashboard: React.FC = () => {
       const updatedUser = await usersAPI.getById(user.id);
       if (updatedUser && updateUserStatus) {
         updateUserStatus(updatedUser);
-        setBreakStartTime(new Date());
+        // Set break start time to current Tashkent time
+        const tashkentNow = getTashkentTime();
+        setBreakStartTime(tashkentNow);
         setCurrentBreakDuration(0);
       }
       toast.success('Перерыв начат');
@@ -378,7 +390,7 @@ const UserDashboard: React.FC = () => {
                 <div className="flex items-center gap-2 mt-1">
                   <Clock className="w-4 h-4 text-gray-500" />
                   <span className="text-sm text-gray-500">
-                    Текущее время: {formatTime(currentTime)}
+                    Текущее время: {formatTime(currentTime)} (Ташкент)
                   </span>
                 </div>
               </div>
@@ -435,7 +447,7 @@ const UserDashboard: React.FC = () => {
                   Вы на перерыве
                 </h2>
                 
-                {/* Current break timer */}
+                {/* Current break timer - ONLY shows time since break started */}
                 <div className="mb-8">
                   <p className="text-sm text-gray-600 mb-2">
                     Текущий перерыв:
@@ -444,7 +456,7 @@ const UserDashboard: React.FC = () => {
                     {formatCurrentBreakDuration(currentBreakDuration)}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Начат в {breakStartTime ? format(convertToTashkentTime(breakStartTime), 'HH:mm', { locale: ru }) : '--:--'}
+                    Начат в {breakStartTime ? format(breakStartTime, 'HH:mm', { locale: ru }) : '--:--'} (Ташкент)
                   </p>
                 </div>
 
