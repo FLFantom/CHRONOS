@@ -9,7 +9,29 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
+// Validate URL format
+try {
+  new URL(supabaseUrl);
+} catch (error) {
+  throw new Error('Invalid Supabase URL format. Please check your VITE_SUPABASE_URL environment variable.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Test Supabase connection
+const testConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('users').select('count').limit(1);
+    if (error) {
+      console.error('Supabase connection test failed:', error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Supabase connection test error:', error);
+    return false;
+  }
+};
 
 // Hash password using bcrypt
 const hashPassword = async (password: string): Promise<string> => {
@@ -22,9 +44,34 @@ const verifyPassword = async (password: string, hashedPassword: string): Promise
   return await bcrypt.compare(password, hashedPassword);
 };
 
+// Enhanced error handling function
+const handleSupabaseError = (error: any, operation: string) => {
+  console.error(`Supabase error in ${operation}:`, error);
+  
+  if (error.message?.includes('Failed to fetch')) {
+    throw new Error(`Не удается подключиться к серверу. Проверьте подключение к интернету и настройки Supabase.`);
+  }
+  
+  if (error.message?.includes('Invalid API key')) {
+    throw new Error(`Неверный API ключ Supabase. Проверьте настройки окружения.`);
+  }
+  
+  if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+    throw new Error(`Таблица базы данных не найдена. Убедитесь, что миграции выполнены.`);
+  }
+  
+  throw new Error(error.message || `Ошибка при выполнении операции: ${operation}`);
+};
+
 export const authAPI = {
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
     try {
+      // Test connection first
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        throw new Error('Не удается подключиться к серверу. Проверьте подключение к интернету.');
+      }
+
       // Get user by email
       const { data: user, error: userError } = await supabase
         .from('users')
@@ -32,7 +79,11 @@ export const authAPI = {
         .eq('email', credentials.email)
         .single();
 
-      if (userError || !user) {
+      if (userError) {
+        handleSupabaseError(userError, 'login - get user');
+      }
+
+      if (!user) {
         throw new Error('Неверный email или пароль');
       }
 
@@ -54,7 +105,10 @@ export const authAPI = {
         token,
       };
     } catch (error) {
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'login');
     }
   },
 };
@@ -62,12 +116,20 @@ export const authAPI = {
 export const usersAPI = {
   async getAll(): Promise<User[]> {
     try {
+      // Test connection first
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        throw new Error('Не удается подключиться к серверу. Проверьте подключение к интернету.');
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'getAll users');
+      }
 
       // Calculate daily break time for each user
       const usersWithBreakTime = await Promise.all(
@@ -118,8 +180,10 @@ export const usersAPI = {
 
       return usersWithBreakTime;
     } catch (error) {
-      console.error('Error fetching users:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'getAll users');
     }
   },
 
@@ -131,7 +195,9 @@ export const usersAPI = {
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'getById user');
+      }
 
       // Calculate daily break time
       const today = new Date();
@@ -165,18 +231,29 @@ export const usersAPI = {
         daily_break_time: dailyBreakTime,
       };
     } catch (error) {
-      console.error('Error fetching user:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'getById user');
       return null;
     }
   },
 
   async getStats(): Promise<TimeStats> {
     try {
+      // Test connection first
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        throw new Error('Не удается подключиться к серверу. Проверьте подключение к интернету.');
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('status');
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'getStats');
+      }
 
       const stats = {
         totalUsers: data?.length || 0,
@@ -187,8 +264,10 @@ export const usersAPI = {
 
       return stats;
     } catch (error) {
-      console.error('Error fetching stats:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'getStats');
     }
   },
 
@@ -204,14 +283,18 @@ export const usersAPI = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'update user');
+      }
       
       // Remove password from response
       const { password, ...userWithoutPassword } = data;
       return userWithoutPassword as User;
     } catch (error) {
-      console.error('Error updating user:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'update user');
     }
   },
 
@@ -222,10 +305,14 @@ export const usersAPI = {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'delete user');
+      }
     } catch (error) {
-      console.error('Error deleting user:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'delete user');
     }
   },
 
@@ -242,10 +329,14 @@ export const usersAPI = {
         })
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'reset password');
+      }
     } catch (error) {
-      console.error('Error resetting password:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'reset password');
     }
   },
 
@@ -258,7 +349,11 @@ export const usersAPI = {
         .eq('id', userId)
         .single();
 
-      if (getUserError || !user) {
+      if (getUserError) {
+        handleSupabaseError(getUserError, 'change password - get user');
+      }
+
+      if (!user) {
         throw new Error('Пользователь не найден');
       }
 
@@ -280,10 +375,14 @@ export const usersAPI = {
         })
         .eq('id', userId);
       
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'change password - update');
+      }
     } catch (error) {
-      console.error('Error changing password:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'change password');
     }
   },
 };
@@ -300,7 +399,9 @@ export const timeLogsAPI = {
           timestamp: new Date().toISOString(),
         });
 
-      if (logError) throw logError;
+      if (logError) {
+        handleSupabaseError(logError, 'log action - insert');
+      }
 
       // Update user status - only update fields that exist in your schema
       const now = new Date().toISOString();
@@ -329,10 +430,14 @@ export const timeLogsAPI = {
         .update(updateData)
         .eq('id', userId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        handleSupabaseError(updateError, 'log action - update user');
+      }
     } catch (error) {
-      console.error('Error logging action:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'log action');
     }
   },
 
@@ -357,11 +462,17 @@ export const timeLogsAPI = {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'get user logs');
+      }
+      
       return data || [];
     } catch (error) {
-      console.error('Error fetching user logs:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'get user logs');
+      return [];
     }
   },
 
@@ -391,11 +502,17 @@ export const timeLogsAPI = {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        handleSupabaseError(error, 'get all logs');
+      }
+      
       return data || [];
     } catch (error) {
-      console.error('Error fetching all logs:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      handleSupabaseError(error, 'get all logs');
+      return [];
     }
   },
 };
