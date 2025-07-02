@@ -209,7 +209,6 @@ const UserDashboard: React.FC = () => {
 
   const getTotalBreakTime = () => {
     // daily_break_time уже включает текущий перерыв из API
-    // Не нужно добавлять currentBreakDuration еще раз
     return user?.daily_break_time || 0;
   };
 
@@ -227,6 +226,15 @@ const UserDashboard: React.FC = () => {
       const excessSecs = excessSeconds % 60;
       return `-${String(excessHours).padStart(2, '0')}:${String(excessMinutes).padStart(2, '0')}:${String(excessSecs).padStart(2, '0')}`;
     }
+    
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // Функция для форматирования только текущего перерыва
+  const formatCurrentBreakDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
@@ -377,9 +385,7 @@ const UserDashboard: React.FC = () => {
                 Текущий перерыв:
               </p>
               <div className="text-2xl font-mono text-gray-700">
-                {String(Math.floor(currentBreakDuration / 3600)).padStart(2, '0')}:
-                {String(Math.floor((currentBreakDuration % 3600) / 60)).padStart(2, '0')}:
-                {String(currentBreakDuration % 60).padStart(2, '0')}
+                {formatCurrentBreakDuration(currentBreakDuration)}
               </div>
             </div>
             

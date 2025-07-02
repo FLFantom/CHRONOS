@@ -10,6 +10,18 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Simple hash function for demo purposes
+// In production, use bcrypt or similar
+const hashPassword = (password: string): string => {
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16);
+};
+
 export const authAPI = {
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
     try {
@@ -208,12 +220,13 @@ export const usersAPI = {
 
   async resetPassword(id: number, newPassword: string): Promise<void> {
     try {
-      // For demo purposes, we'll update the password directly
-      // In production, you should hash the password properly
+      // Hash the password before storing
+      const hashedPassword = hashPassword(newPassword);
+      
       const { error } = await supabase
         .from('users')
         .update({ 
-          password: newPassword, // In production, hash this password
+          password: hashedPassword,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -227,12 +240,38 @@ export const usersAPI = {
 
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     try {
-      // For demo purposes, we'll update the password directly
-      // In production, you should verify current password and hash the new one
+      // Get current user data to verify current password
+      const { data: user, error: getUserError } = await supabase
+        .from('users')
+        .select('password, email')
+        .eq('id', userId)
+        .single();
+
+      if (getUserError || !user) {
+        throw new Error('Пользователь не найден');
+      }
+
+      // For demo accounts, verify current password
+      const validPasswords: Record<string, string> = {
+        'admin@example.com': 'admin123',
+        'hvlad@example.com': 'user123',
+      };
+
+      // Check if it's a demo account or verify hashed password
+      const isValidCurrentPassword = validPasswords[user.email] === currentPassword || 
+                                   user.password === hashPassword(currentPassword);
+
+      if (!isValidCurrentPassword) {
+        throw new Error('Неверный текущий пароль');
+      }
+
+      // Hash the new password before storing
+      const hashedPassword = hashPassword(newPassword);
+      
       const { error } = await supabase
         .from('users')
         .update({ 
-          password: newPassword, // In production, hash this password
+          password: hashedPassword,
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
@@ -266,7 +305,6 @@ export const timeLogsAPI = {
       switch (action) {
         case 'start_work':
           updateData.status = 'working';
-          // Remove work_start_time since it doesn't exist in your schema
           break;
         case 'start_break':
           updateData.status = 'on_break';
@@ -279,7 +317,6 @@ export const timeLogsAPI = {
         case 'end_work':
           updateData.status = 'offline';
           updateData.break_start_time = null;
-          // Remove work_start_time since it doesn't exist in your schema
           break;
       }
 
