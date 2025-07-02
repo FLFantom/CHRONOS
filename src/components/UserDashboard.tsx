@@ -673,8 +673,8 @@ const UserDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Break time summary with enhanced design - ИСПРАВЛЕНО: показываем только если есть время перерыва */}
-        {user.daily_break_time && user.daily_break_time > 0 && (
+        {/* Break time summary with enhanced design - ИСПРАВЛЕНО: показываем только если есть значимое время перерыва */}
+        {user.daily_break_time && user.daily_break_time > 60 && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 text-center border-l-4 border-orange-400">
             <div className="flex items-center justify-center gap-3 mb-4">
               <Coffee className="w-6 h-6 text-orange-500" />
