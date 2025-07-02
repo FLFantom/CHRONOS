@@ -187,7 +187,6 @@ const UserDashboard: React.FC = () => {
   const { user, logout, impersonating, exitImpersonation, updateUserStatus } = useAuth();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(getTashkentTime());
-  const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
   const [currentBreakDuration, setCurrentBreakDuration] = useState(0);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
 
@@ -196,30 +195,28 @@ const UserDashboard: React.FC = () => {
       const tashkentTime = getTashkentTime();
       setCurrentTime(tashkentTime);
       
-      if (breakStartTime) {
-        // Calculate duration from break start time to current Tashkent time
-        const currentTashkentTime = getTashkentTime();
-        const duration = Math.floor((currentTashkentTime.getTime() - breakStartTime.getTime()) / 1000);
+      // Calculate current break duration if user is on break
+      if (user?.status === 'on_break' && user.break_start_time) {
+        const breakStart = new Date(user.break_start_time);
+        const now = new Date();
+        const duration = Math.floor((now.getTime() - breakStart.getTime()) / 1000);
         setCurrentBreakDuration(Math.max(0, duration));
+      } else {
+        setCurrentBreakDuration(0);
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [breakStartTime]);
+  }, [user]);
 
+  // Initialize break duration when component mounts or user changes
   useEffect(() => {
-    // Initialize break time if user is on break
     if (user?.status === 'on_break' && user.break_start_time) {
-      // Convert break start time to Tashkent time
-      const breakStart = convertToTashkentTime(new Date(user.break_start_time));
-      setBreakStartTime(breakStart);
-      
-      // Calculate initial duration
-      const currentTashkentTime = getTashkentTime();
-      const initialDuration = Math.floor((currentTashkentTime.getTime() - breakStart.getTime()) / 1000);
-      setCurrentBreakDuration(Math.max(0, initialDuration));
+      const breakStart = new Date(user.break_start_time);
+      const now = new Date();
+      const duration = Math.floor((now.getTime() - breakStart.getTime()) / 1000);
+      setCurrentBreakDuration(Math.max(0, duration));
     } else {
-      setBreakStartTime(null);
       setCurrentBreakDuration(0);
     }
   }, [user]);
@@ -239,29 +236,22 @@ const UserDashboard: React.FC = () => {
     return format(date, 'EEEE, d MMMM yyyy г.', { locale: ru });
   };
 
+  // Get total break time for the day (from database)
   const getTotalBreakTime = () => {
     return user?.daily_break_time || 0;
   };
 
-  const formatBreakDuration = (seconds: number) => {
-    const totalSeconds = getTotalBreakTime();
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-    
-    if (totalSeconds > MAX_BREAK_TIME) {
-      const excessSeconds = totalSeconds - MAX_BREAK_TIME;
-      const excessHours = Math.floor(excessSeconds / 3600);
-      const excessMinutes = Math.floor((excessSeconds % 3600) / 60);
-      const excessSecs = excessSeconds % 60;
-      return `-${String(excessHours).padStart(2, '0')}:${String(excessMinutes).padStart(2, '0')}:${String(excessSecs).padStart(2, '0')}`;
+  // Get current total break time including current break
+  const getCurrentTotalBreakTime = () => {
+    const dailyBreakTime = getTotalBreakTime();
+    if (user?.status === 'on_break') {
+      return dailyBreakTime + currentBreakDuration;
     }
-    
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return dailyBreakTime;
   };
 
-  // Format current break duration - only shows time since break started
-  const formatCurrentBreakDuration = (seconds: number) => {
+  // Format break duration in HH:MM:SS
+  const formatBreakDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -295,10 +285,7 @@ const UserDashboard: React.FC = () => {
       const updatedUser = await usersAPI.getById(user.id);
       if (updatedUser && updateUserStatus) {
         updateUserStatus(updatedUser);
-        // Set break start time to current Tashkent time
-        const tashkentNow = getTashkentTime();
-        setBreakStartTime(tashkentNow);
-        setCurrentBreakDuration(0);
+        setCurrentBreakDuration(0); // Reset current break duration
       }
       toast.success('Перерыв начат');
     } catch (error) {
@@ -314,7 +301,6 @@ const UserDashboard: React.FC = () => {
       const updatedUser = await usersAPI.getById(user.id);
       if (updatedUser && updateUserStatus) {
         updateUserStatus(updatedUser);
-        setBreakStartTime(null);
         setCurrentBreakDuration(0);
       }
       toast.success('Перерыв закончен');
@@ -331,7 +317,6 @@ const UserDashboard: React.FC = () => {
       const updatedUser = await usersAPI.getById(user.id);
       if (updatedUser && updateUserStatus) {
         updateUserStatus(updatedUser);
-        setBreakStartTime(null);
         setCurrentBreakDuration(0);
       }
       toast.success('Рабочий день завершен');
@@ -354,12 +339,12 @@ const UserDashboard: React.FC = () => {
 
   if (!user) return null;
 
-  // Enhanced break screen with beautiful design and better functionality
+  // Enhanced break screen with real-time updates
   if (user.status === 'on_break') {
-    const totalBreakTime = getTotalBreakTime();
-    const isExceeded = totalBreakTime > MAX_BREAK_TIME;
-    const remainingTime = Math.max(0, MAX_BREAK_TIME - totalBreakTime);
-    const progressPercentage = Math.min(100, (totalBreakTime / MAX_BREAK_TIME) * 100);
+    const currentTotalBreakTime = getCurrentTotalBreakTime();
+    const isExceeded = currentTotalBreakTime > MAX_BREAK_TIME;
+    const remainingTime = Math.max(0, MAX_BREAK_TIME - currentTotalBreakTime);
+    const progressPercentage = Math.min(100, (currentTotalBreakTime / MAX_BREAK_TIME) * 100);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-red-50 p-4 relative overflow-hidden">
@@ -453,14 +438,14 @@ const UserDashboard: React.FC = () => {
                     Текущий перерыв:
                   </p>
                   <div className="text-6xl font-mono font-bold text-blue-600 mb-2">
-                    {formatCurrentBreakDuration(currentBreakDuration)}
+                    {formatBreakDuration(currentBreakDuration)}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Начат в {breakStartTime ? format(breakStartTime, 'HH:mm', { locale: ru }) : '--:--'} (Ташкент)
+                    Начат в {user.break_start_time ? format(new Date(user.break_start_time), 'HH:mm', { locale: ru }) : '--:--'} (Ташкент)
                   </p>
                 </div>
 
-                {/* Progress bar */}
+                {/* Progress bar - updates in real time */}
                 <div className="mb-8">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-gray-600">Использовано времени</span>
@@ -496,7 +481,7 @@ const UserDashboard: React.FC = () => {
 
             {/* Side statistics */}
             <div className="space-y-6">
-              {/* Daily break summary */}
+              {/* Daily break summary - updates in real time */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-orange-100 rounded-full p-2">
@@ -505,13 +490,13 @@ const UserDashboard: React.FC = () => {
                   <h3 className="font-bold text-gray-800">Общее время за день</h3>
                 </div>
                 <div className={`text-3xl font-mono font-bold mb-2 ${isExceeded ? 'text-red-500' : 'text-orange-500'}`}>
-                  {formatBreakDuration(totalBreakTime)}
+                  {formatBreakDuration(currentTotalBreakTime)}
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <span>Лимит: 01:00:00</span>
                   {!isExceeded && (
                     <span className="text-green-600 font-medium">
-                      Осталось: {formatCurrentBreakDuration(remainingTime)}
+                      Осталось: {formatBreakDuration(remainingTime)}
                     </span>
                   )}
                 </div>
@@ -591,7 +576,7 @@ const UserDashboard: React.FC = () => {
                 </p>
                 <div className="mt-4 p-3 bg-red-100 rounded-lg">
                   <p className="text-red-700 text-sm font-medium">
-                    Превышение: {formatCurrentBreakDuration(totalBreakTime - MAX_BREAK_TIME)}
+                    Превышение: {formatBreakDuration(currentTotalBreakTime - MAX_BREAK_TIME)}
                   </p>
                 </div>
               </div>
@@ -686,7 +671,7 @@ const UserDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Break time summary with enhanced design */}
+        {/* Break time summary with enhanced design - updates in real time */}
         {user.daily_break_time && user.daily_break_time > 0 && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 text-center border-l-4 border-orange-400">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -696,17 +681,15 @@ const UserDashboard: React.FC = () => {
               </h3>
             </div>
             <div className={`text-4xl font-mono font-bold mb-2 ${
-              user.daily_break_time > MAX_BREAK_TIME ? 'text-red-500' : 'text-orange-500'
+              getCurrentTotalBreakTime() > MAX_BREAK_TIME ? 'text-red-500' : 'text-orange-500'
             }`}>
-              {String(Math.floor(user.daily_break_time / 3600)).padStart(2, '0')}:
-              {String(Math.floor((user.daily_break_time % 3600) / 60)).padStart(2, '0')}:
-              {String(user.daily_break_time % 60).padStart(2, '0')}
+              {formatBreakDuration(getCurrentTotalBreakTime())}
             </div>
             <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
               <span>Лимит: 01:00:00 в день</span>
-              {user.daily_break_time > MAX_BREAK_TIME && (
+              {getCurrentTotalBreakTime() > MAX_BREAK_TIME && (
                 <span className="text-red-500 font-medium">
-                  Превышение: {formatCurrentBreakDuration(user.daily_break_time - MAX_BREAK_TIME)}
+                  Превышение: {formatBreakDuration(getCurrentTotalBreakTime() - MAX_BREAK_TIME)}
                 </span>
               )}
             </div>
