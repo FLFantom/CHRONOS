@@ -208,8 +208,9 @@ const UserDashboard: React.FC = () => {
   };
 
   const getTotalBreakTime = () => {
-    const dailyBreakTime = user?.daily_break_time || 0;
-    return dailyBreakTime + currentBreakDuration;
+    // daily_break_time уже включает текущий перерыв из API
+    // Не нужно добавлять currentBreakDuration еще раз
+    return user?.daily_break_time || 0;
   };
 
   const formatBreakDuration = (seconds: number) => {
