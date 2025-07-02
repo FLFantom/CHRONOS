@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock, LogIn, Sparkles, Shield, Zap, Clock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, LogIn, Sparkles, Shield, Zap, Clock, Star, Heart, Waves, Wind } from 'lucide-react';
 import { LoginCredentials } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,14 +33,28 @@ const LoginForm: React.FC = () => {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
         
-        {/* Floating particles */}
+        {/* Enhanced floating particles */}
         <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full opacity-60 animate-pulse"></div>
         <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-purple-400 rounded-full opacity-40 animate-bounce"></div>
         <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-pink-400 rounded-full opacity-80 animate-pulse"></div>
         <div className="absolute top-1/2 right-1/3 w-2 h-2 bg-indigo-400 rounded-full opacity-50 animate-bounce"></div>
+        
+        {/* New floating icons */}
+        <div className="absolute top-1/5 right-1/5 animate-float">
+          <Star className="w-4 h-4 text-yellow-300 opacity-40" />
+        </div>
+        <div className="absolute bottom-1/5 left-1/5 animate-float-delayed">
+          <Heart className="w-5 h-5 text-pink-300 opacity-35" />
+        </div>
+        <div className="absolute top-2/3 left-1/6 animate-float">
+          <Waves className="w-3 h-3 text-cyan-300 opacity-30" />
+        </div>
+        <div className="absolute bottom-1/3 right-1/6 animate-float-delayed">
+          <Wind className="w-4 h-4 text-blue-300 opacity-25" />
+        </div>
       </div>
 
-      <div className="relative z-10 bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20 hover:border-white/30 transition-all duration-300">
+      <div className="relative z-10 bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20 hover:border-white/30 transition-all duration-300 transform hover:scale-[1.02]">
         {/* Enhanced header */}
         <div className="text-center mb-8">
           <div className="relative mb-6">
@@ -54,9 +68,12 @@ const LoginForm: React.FC = () => {
             <div className="absolute -bottom-2 -left-2">
               <Zap className="w-5 h-5 text-blue-400 animate-bounce" />
             </div>
+            <div className="absolute -top-1 -left-1">
+              <Star className="w-4 h-4 text-pink-400 animate-pulse" />
+            </div>
           </div>
           
-          <h1 className="text-4xl font-bold text-white mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-white mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient">
             CHRONOS
           </h1>
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -65,12 +82,12 @@ const LoginForm: React.FC = () => {
               Система учета времени
             </p>
           </div>
-          <p className="text-white/70 text-sm">
+          <p className="text-white/70 text-sm mb-4">
             Войдите в свой аккаунт для продолжения работы
           </p>
           
-          {/* Security badge */}
-          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 border border-white/20">
+          {/* Enhanced security badge */}
+          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 border border-white/20 hover:bg-white/15 transition-all duration-200">
             <Shield className="w-4 h-4 text-green-400" />
             <span className="text-white/80 text-xs font-medium">Защищенный вход</span>
           </div>
@@ -78,7 +95,8 @@ const LoginForm: React.FC = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-white/90 mb-3">
+            <label className="block text-sm font-semibold text-white/90 mb-3 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-blue-400" />
               Email адрес
             </label>
             <div className="relative group">
@@ -92,21 +110,23 @@ const LoginForm: React.FC = () => {
                     message: 'Неверный формат email',
                   },
                 })}
-                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-white placeholder-white/50 backdrop-blur-sm hover:bg-white/15"
+                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-white placeholder-white/50 backdrop-blur-sm hover:bg-white/15 group-hover:shadow-lg"
                 placeholder="example@company.com"
+                disabled={isSubmitting}
               />
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </div>
             {errors.email && (
-              <p className="text-red-400 text-sm mt-2 flex items-center gap-2 bg-red-500/10 rounded-lg p-2 border border-red-500/20">
-                <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+              <p className="text-red-400 text-sm mt-2 flex items-center gap-2 bg-red-500/10 rounded-lg p-2 border border-red-500/20 animate-slide-up">
+                <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                 {errors.email.message}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-white/90 mb-3">
+            <label className="block text-sm font-semibold text-white/90 mb-3 flex items-center gap-2">
+              <Lock className="w-4 h-4 text-purple-400" />
               Пароль
             </label>
             <div className="relative group">
@@ -120,30 +140,32 @@ const LoginForm: React.FC = () => {
                     message: 'Пароль должен содержать минимум 6 символов',
                   },
                 })}
-                className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-white placeholder-white/50 backdrop-blur-sm hover:bg-white/15"
+                className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-white placeholder-white/50 backdrop-blur-sm hover:bg-white/15 group-hover:shadow-lg"
                 placeholder="Введите пароль"
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white transition-colors duration-200 p-1 rounded-lg hover:bg-white/10"
+                disabled={isSubmitting}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
               <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
             </div>
             {errors.password && (
-              <p className="text-red-400 text-sm mt-2 flex items-center gap-2 bg-red-500/10 rounded-lg p-2 border border-red-500/20">
-                <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+              <p className="text-red-400 text-sm mt-2 flex items-center gap-2 bg-red-500/10 rounded-lg p-2 border border-red-500/20 animate-slide-up">
+                <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                 {errors.password.message}
               </p>
             )}
           </div>
 
           {errors.root && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm">
+            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 backdrop-blur-sm animate-bounce-in">
               <p className="text-red-300 text-sm flex items-center gap-2">
-                <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                 {errors.root.message}
               </p>
             </div>
@@ -169,7 +191,7 @@ const LoginForm: React.FC = () => {
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             
-            {/* Animated shine effect */}
+            {/* Enhanced animated shine effect */}
             <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
           </button>
         </form>
@@ -182,20 +204,26 @@ const LoginForm: React.FC = () => {
           </div>
           
           <div className="flex items-center justify-center gap-4 text-white/40 text-xs">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 hover:text-white/60 transition-colors">
               <Shield className="w-3 h-3" />
               <span>Безопасно</span>
             </div>
             <div className="w-1 h-1 bg-white/40 rounded-full"></div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 hover:text-white/60 transition-colors">
               <Zap className="w-3 h-3" />
               <span>Быстро</span>
             </div>
             <div className="w-1 h-1 bg-white/40 rounded-full"></div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 hover:text-white/60 transition-colors">
               <Sparkles className="w-3 h-3" />
               <span>Надежно</span>
             </div>
+          </div>
+          
+          {/* Enhanced version info */}
+          <div className="mt-6 text-white/30 text-xs">
+            <p>CHRONOS v1.0 • Система учета рабочего времени</p>
+            <p className="mt-1">Все webhook уведомления работают автоматически</p>
           </div>
         </div>
       </div>
