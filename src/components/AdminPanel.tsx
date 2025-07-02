@@ -887,7 +887,7 @@ const AdminPanel: React.FC = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full opacity-5 animate-pulse"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-full mx-auto relative z-10">
         {/* Enhanced header */}
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-6">
@@ -986,7 +986,7 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced employees table with increased height */}
+        {/* ИСПРАВЛЕНО: Расширенная таблица сотрудников на всю ширину экрана */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
           <div className="p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
             <div className="flex items-center justify-between mb-6">
@@ -1037,28 +1037,28 @@ const AdminPanel: React.FC = () => {
             )}
           </div>
 
-          {/* ИСПРАВЛЕНО: Увеличена высота таблицы до 80vh */}
-          <div className="overflow-x-auto" style={{ height: '80vh' }}>
+          {/* ИСПРАВЛЕНО: Увеличена высота таблицы и расширена на всю ширину */}
+          <div className="overflow-x-auto w-full" style={{ height: '70vh' }}>
             <div className="overflow-y-auto h-full">
-              <table className="w-full">
+              <table className="w-full min-w-full">
                 <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
                   <tr>
-                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[250px]">
                       Сотрудник
                     </th>
-                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[150px]">
                       Статус
                     </th>
-                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[180px]">
                       Текущий перерыв
                     </th>
-                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[180px]">
                       Перерыв за день
                     </th>
-                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[120px]">
                       Роль
                     </th>
-                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[300px]">
                       Действия
                     </th>
                   </tr>
@@ -1086,7 +1086,7 @@ const AdminPanel: React.FC = () => {
                   ) : (
                     filteredUsers.map((employee) => (
                       <tr key={employee.id} className="hover:bg-gray-50/80 transition-all duration-200">
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <div>
                             <div className="font-bold text-gray-800 text-lg">
                               {employee.name}
@@ -1096,17 +1096,17 @@ const AdminPanel: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border ${getStatusColor(employee.status)}`}>
                             {employee.status === 'working' && <Timer className="w-4 h-4" />}
                             {employee.status === 'on_break' && <Coffee className="w-4 h-4" />}
                             {getStatusText(employee.status)}
                           </span>
                         </td>
-                        <td className="px-8 py-6 text-gray-600 font-medium">
+                        <td className="px-6 py-6 text-gray-600 font-medium">
                           {formatBreakTime(employee)}
                         </td>
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <span className={`font-bold ${
                             (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-600'
                           }`}>
@@ -1116,15 +1116,15 @@ const AdminPanel: React.FC = () => {
                             )}
                           </span>
                         </td>
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <span className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold border ${
                             employee.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'
                           }`}>
                             {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
                           </span>
                         </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-2">
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <button
                               onClick={() => handleImpersonateUser(employee.id)}
                               className="p-3 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
