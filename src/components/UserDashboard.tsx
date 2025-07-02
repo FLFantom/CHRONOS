@@ -283,6 +283,12 @@ const UserDashboard: React.FC = () => {
     return { text: 'Доброй ночи', icon: Moon, color: 'from-indigo-500 via-purple-500 to-pink-500', bgColor: 'from-indigo-50 to-purple-50' };
   };
 
+  // ИСПРАВЛЕНО: Extract first name from full name (берем первое слово, а не последнее)
+  const getFirstName = (fullName: string) => {
+    const nameParts = fullName.trim().split(' ');
+    return nameParts[0]; // Берем первое слово (имя), а не последнее
+  };
+
   const formatTime = (date: Date) => {
     return format(date, 'HH:mm:ss');
   };
@@ -317,11 +323,6 @@ const UserDashboard: React.FC = () => {
   const isWorkingHours = isWithinWorkingHours();
   const currentHour = currentTime.getHours();
   const greeting = getGreeting();
-
-  // Extract first name from full name
-  const getFirstName = (fullName: string) => {
-    return fullName.split(' ')[0];
-  };
 
   const handleAction = async (action: () => Promise<void>, loadingMessage: string, successMessage: string) => {
     setIsLoading(true);

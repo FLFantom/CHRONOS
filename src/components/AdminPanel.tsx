@@ -193,6 +193,177 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
   );
 };
 
+// ДОБАВЛЕНО: Модальное окно для сброса пароля
+interface ResetPasswordModalProps {
+  isOpen: boolean;
+  user: User | null;
+  onClose: () => void;
+  onSubmit: (newPassword: string) => void;
+}
+
+const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, user, onClose, onSubmit }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('Пароли не совпадают');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Пароль должен содержать минимум 6 символов');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(newPassword);
+      setNewPassword('');
+      setConfirmPassword('');
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPassword(false);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !user) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 relative overflow-hidden transform transition-all duration-300 scale-100">
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 animate-gradient"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-xl p-3 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              <KeyRound className="w-6 h-6 text-white relative z-10" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                Сброс пароля
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Пользователь: {user.name}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-all duration-200 p-2 hover:bg-gray-100 rounded-lg hover:scale-110"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-orange-500" />
+              Новый пароль
+            </label>
+            <div className="relative group">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 group-hover:shadow-md"
+                placeholder="Введите новый пароль"
+                required
+                minLength={6}
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                {showPassword ? <Eye className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Минимум 6 символов
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              Подтвердите пароль
+            </label>
+            <div className="relative group">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 group-hover:shadow-md"
+                placeholder="Подтвердите новый пароль"
+                required
+                minLength={6}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-700">
+                <p className="font-semibold mb-1">Внимание!</p>
+                <p>Новый пароль будет установлен для пользователя <strong>{user.name}</strong>. Обязательно сообщите ему новый пароль.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700 hover:border-gray-400 hover:scale-[1.02]"
+              disabled={isSubmitting}
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white rounded-xl hover:from-orange-600 hover:via-red-600 hover:to-pink-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Сброс...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <KeyRound className="w-4 h-4" />
+                  Сбросить пароль
+                </div>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AdminPanel: React.FC = () => {
   const { user, logout, impersonateUser } = useAuth();
   const navigate = useNavigate();
@@ -204,6 +375,7 @@ const AdminPanel: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'working' | 'on_break' | 'offline'>('all');
   const [logPeriod, setLogPeriod] = useState<'day' | 'month' | 'all'>('day');
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [currentTime, setCurrentTime] = useState(getTashkentTime());
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'logs'>('overview');
@@ -263,16 +435,22 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const handleResetPassword = async (userId: number) => {
-    const newPassword = prompt('Введите новый пароль:');
-    if (!newPassword) return;
+  // ИСПРАВЛЕНО: Используем модальное окно вместо prompt
+  const handleResetPassword = async (newPassword: string) => {
+    if (!selectedUser) return;
     
     try {
-      await usersAPI.resetPassword(userId, newPassword);
-      toast.success('Пароль сброшен');
+      await usersAPI.resetPassword(selectedUser.id, newPassword);
+      toast.success(`Пароль для ${selectedUser.name} успешно сброшен! 🔐`);
     } catch (error) {
       toast.error('Ошибка сброса пароля');
+      throw error;
     }
+  };
+
+  // ИСПРАВЛЕНО: Проверяем права доступа только для оригинального пользователя
+  const canAccessAdminPanel = () => {
+    return user && user.role === 'admin';
   };
 
   const filteredUsers = users.filter(user => {
@@ -341,7 +519,8 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  if (!user || user.role !== 'admin') {
+  // ИСПРАВЛЕНО: Используем правильную проверку прав доступа
+  if (!canAccessAdminPanel()) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl p-8 text-center max-w-md w-full">
@@ -790,7 +969,10 @@ const AdminPanel: React.FC = () => {
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleResetPassword(user.id)}
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setResetPasswordModalOpen(true);
+                              }}
                               className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-all duration-200 hover:scale-110"
                               title="Сбросить пароль"
                             >
@@ -917,6 +1099,17 @@ const AdminPanel: React.FC = () => {
           setSelectedUser(null);
         }}
         onSave={handleEditUser}
+      />
+
+      {/* ДОБАВЛЕНО: Reset Password Modal */}
+      <ResetPasswordModal
+        isOpen={resetPasswordModalOpen}
+        user={selectedUser}
+        onClose={() => {
+          setResetPasswordModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onSubmit={handleResetPassword}
       />
     </div>
   );
