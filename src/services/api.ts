@@ -50,10 +50,7 @@ export const usersAPI = {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select(`
-          *,
-          daily_break_time:time_logs!inner(break_duration)
-        `)
+        .select('*')
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -211,18 +208,17 @@ export const usersAPI = {
 
   async resetPassword(id: number, newPassword: string): Promise<void> {
     try {
-      // For demo purposes, we'll just log the password reset
+      // For demo purposes, we'll update the password directly
       // In production, you should hash the password properly
-      console.log(`Password reset for user ${id}: ${newPassword}`);
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          password: newPassword, // In production, hash this password
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
       
-      // You could update the password in the database here
-      // const { error } = await supabase
-      //   .from('users')
-      //   .update({ password: hashedPassword })
-      //   .eq('id', id);
-      
-      // For now, we'll just simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (error) throw error;
     } catch (error) {
       console.error('Error resetting password:', error);
       throw error;
@@ -231,11 +227,17 @@ export const usersAPI = {
 
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     try {
-      // For demo purposes, we'll just simulate password change
+      // For demo purposes, we'll update the password directly
       // In production, you should verify current password and hash the new one
-      console.log(`Password change for user ${userId}: ${newPassword}`);
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          password: newPassword, // In production, hash this password
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (error) throw error;
     } catch (error) {
       console.error('Error changing password:', error);
       throw error;
@@ -257,14 +259,14 @@ export const timeLogsAPI = {
 
       if (logError) throw logError;
 
-      // Update user status
+      // Update user status - only update fields that exist in your schema
       const now = new Date().toISOString();
       let updateData: any = { updated_at: now };
 
       switch (action) {
         case 'start_work':
           updateData.status = 'working';
-          updateData.work_start_time = now;
+          // Remove work_start_time since it doesn't exist in your schema
           break;
         case 'start_break':
           updateData.status = 'on_break';
@@ -276,8 +278,8 @@ export const timeLogsAPI = {
           break;
         case 'end_work':
           updateData.status = 'offline';
-          updateData.work_start_time = null;
           updateData.break_start_time = null;
+          // Remove work_start_time since it doesn't exist in your schema
           break;
       }
 
