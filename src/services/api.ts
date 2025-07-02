@@ -448,10 +448,10 @@ export const timeLogsAPI = {
     try {
       const now = new Date();
       
-      // Get user data for webhook notifications
+      // Get user data for webhook notifications - removed daily_break_time from select
       const { data: user, error: userError } = await supabase
         .from('users')
-        .select('name, daily_break_time, break_start_time')
+        .select('name, break_start_time')
         .eq('id', userId)
         .single();
 
@@ -538,9 +538,9 @@ export const timeLogsAPI = {
           }
         });
 
-        // Set up monitoring for break time exceeded
+        // Set up monitoring for break time exceeded - fixed the argument
         setTimeout(() => {
-          checkBreakExceeded(now, user.name, totalBreakTime + MAX_BREAK_TIME);
+          checkBreakExceeded(now, user.name, totalBreakTime);
         }, MAX_BREAK_TIME * 1000);
       }
     } catch (error) {
