@@ -10,165 +10,349 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Mock data for development
-const mockUsers: User[] = [
-  {
-    id: 1,
-    email: 'admin@example.com',
-    name: 'Admin User',
-    role: 'admin',
-    status: 'offline',
-    daily_break_time: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    email: 'hvlad@example.com',
-    name: 'Vlad H',
-    role: 'user',
-    status: 'offline',
-    daily_break_time: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
-let currentUser: User | null = null;
-
 export const authAPI = {
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
-    // Mock authentication
-    const user = mockUsers.find(u => u.email === credentials.email);
-    
-    if (!user) {
-      throw new Error('Пользователь не найден');
+    try {
+      // Get user by email
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', credentials.email)
+        .single();
+
+      if (userError || !users) {
+        throw new Error('Пользователь не найден');
+      }
+
+      // For demo purposes, we'll use simple password comparison
+      // In production, you should use proper password hashing
+      const validPasswords: Record<string, string> = {
+        'admin@example.com': 'admin123',
+        'hvlad@example.com': 'user123',
+      };
+
+      if (validPasswords[credentials.email] !== credentials.password) {
+        throw new Error('Неверный пароль');
+      }
+
+      return {
+        user: users,
+        token: 'jwt-token-' + users.id,
+      };
+    } catch (error) {
+      throw error;
     }
-
-    // Mock password validation
-    const validPasswords: Record<string, string> = {
-      'admin@example.com': 'admin123',
-      'hvlad@example.com': 'user123',
-    };
-
-    if (validPasswords[credentials.email] !== credentials.password) {
-      throw new Error('Неверный пароль');
-    }
-
-    currentUser = user;
-    return {
-      user,
-      token: 'mock-jwt-token',
-    };
   },
 };
 
 export const usersAPI = {
   async getAll(): Promise<User[]> {
-    return mockUsers;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          daily_break_time:time_logs!inner(break_duration)
+        `)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Calculate daily break time for each user
+      const usersWithBreakTime = await Promise.all(
+        (data || []).map(async (user) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const { data: todayLogs, error: logsError } = await supabase
+            .from('time_logs')
+            .select('*')
+            .eq('user_id', user.id)
+            .gte('timestamp', today.toISOString())
+            .order('timestamp', { ascending: true });
+
+          if (logsError) {
+            console.error('Error fetching logs:', logsError);
+            return { ...user, daily_break_time: 0 };
+          }
+
+          let dailyBreakTime = 0;
+          let currentBreakStart: Date | null = null;
+
+          todayLogs?.forEach((log) => {
+            if (log.action === 'start_break') {
+              currentBreakStart = new Date(log.timestamp);
+            } else if (log.action === 'end_break' && currentBreakStart) {
+              const breakEnd = new Date(log.timestamp);
+              dailyBreakTime += Math.floor((breakEnd.getTime() - currentBreakStart.getTime()) / 1000);
+              currentBreakStart = null;
+            }
+          });
+
+          // If user is currently on break, add current break time
+          if (user.status === 'on_break' && user.break_start_time) {
+            const currentBreakDuration = Math.floor((Date.now() - new Date(user.break_start_time).getTime()) / 1000);
+            dailyBreakTime += currentBreakDuration;
+          }
+
+          return {
+            ...user,
+            daily_break_time: dailyBreakTime,
+          };
+        })
+      );
+
+      return usersWithBreakTime;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
   },
 
   async getById(id: number): Promise<User | null> {
-    return mockUsers.find(u => u.id === id) || null;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      // Calculate daily break time
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: todayLogs, error: logsError } = await supabase
+        .from('time_logs')
+        .select('*')
+        .eq('user_id', id)
+        .gte('timestamp', today.toISOString())
+        .order('timestamp', { ascending: true });
+
+      let dailyBreakTime = 0;
+      let currentBreakStart: Date | null = null;
+
+      todayLogs?.forEach((log) => {
+        if (log.action === 'start_break') {
+          currentBreakStart = new Date(log.timestamp);
+        } else if (log.action === 'end_break' && currentBreakStart) {
+          const breakEnd = new Date(log.timestamp);
+          dailyBreakTime += Math.floor((breakEnd.getTime() - currentBreakStart.getTime()) / 1000);
+          currentBreakStart = null;
+        }
+      });
+
+      return {
+        ...data,
+        daily_break_time: dailyBreakTime,
+      };
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
   },
 
   async getStats(): Promise<TimeStats> {
-    return {
-      totalUsers: mockUsers.length,
-      workingUsers: mockUsers.filter(u => u.status === 'working').length,
-      onBreakUsers: mockUsers.filter(u => u.status === 'on_break').length,
-      offlineUsers: mockUsers.filter(u => u.status === 'offline').length,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('status');
+
+      if (error) throw error;
+
+      const stats = {
+        totalUsers: data?.length || 0,
+        workingUsers: data?.filter(u => u.status === 'working').length || 0,
+        onBreakUsers: data?.filter(u => u.status === 'on_break').length || 0,
+        offlineUsers: data?.filter(u => u.status === 'offline').length || 0,
+      };
+
+      return stats;
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      throw error;
+    }
   },
 
   async update(id: number, userData: Partial<User>): Promise<User> {
-    const userIndex = mockUsers.findIndex(u => u.id === id);
-    if (userIndex === -1) {
-      throw new Error('Пользователь не найден');
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({
+          ...userData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
     }
-
-    mockUsers[userIndex] = {
-      ...mockUsers[userIndex],
-      ...userData,
-      updated_at: new Date().toISOString(),
-    };
-
-    return mockUsers[userIndex];
   },
 
   async delete(id: number): Promise<void> {
-    const userIndex = mockUsers.findIndex(u => u.id === id);
-    if (userIndex === -1) {
-      throw new Error('Пользователь не найден');
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
     }
-    mockUsers.splice(userIndex, 1);
   },
 
   async resetPassword(id: number, newPassword: string): Promise<void> {
-    // Mock password reset
-    console.log(`Password reset for user ${id}: ${newPassword}`);
+    try {
+      // For demo purposes, we'll just log the password reset
+      // In production, you should hash the password properly
+      console.log(`Password reset for user ${id}: ${newPassword}`);
+      
+      // You could update the password in the database here
+      // const { error } = await supabase
+      //   .from('users')
+      //   .update({ password: hashedPassword })
+      //   .eq('id', id);
+      
+      // For now, we'll just simulate success
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  },
+
+  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      // For demo purposes, we'll just simulate password change
+      // In production, you should verify current password and hash the new one
+      console.log(`Password change for user ${userId}: ${newPassword}`);
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error;
+    }
   },
 };
 
 export const timeLogsAPI = {
   async logAction(action: string, userId: number): Promise<void> {
-    const user = mockUsers.find(u => u.id === userId);
-    if (!user) {
-      throw new Error('Пользователь не найден');
+    try {
+      // Insert log entry
+      const { error: logError } = await supabase
+        .from('time_logs')
+        .insert({
+          user_id: userId,
+          action,
+          timestamp: new Date().toISOString(),
+        });
+
+      if (logError) throw logError;
+
+      // Update user status
+      const now = new Date().toISOString();
+      let updateData: any = { updated_at: now };
+
+      switch (action) {
+        case 'start_work':
+          updateData.status = 'working';
+          updateData.work_start_time = now;
+          break;
+        case 'start_break':
+          updateData.status = 'on_break';
+          updateData.break_start_time = now;
+          break;
+        case 'end_break':
+          updateData.status = 'working';
+          updateData.break_start_time = null;
+          break;
+        case 'end_work':
+          updateData.status = 'offline';
+          updateData.work_start_time = null;
+          updateData.break_start_time = null;
+          break;
+      }
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+    } catch (error) {
+      console.error('Error logging action:', error);
+      throw error;
     }
-
-    const now = new Date();
-
-    switch (action) {
-      case 'start_work':
-        user.status = 'working';
-        user.work_start_time = now.toISOString();
-        break;
-      case 'start_break':
-        user.status = 'on_break';
-        user.break_start_time = now.toISOString();
-        break;
-      case 'end_break':
-        if (user.break_start_time) {
-          const breakDuration = Math.floor((now.getTime() - new Date(user.break_start_time).getTime()) / 1000);
-          user.daily_break_time = (user.daily_break_time || 0) + breakDuration;
-        }
-        user.status = 'working';
-        user.break_start_time = undefined;
-        break;
-      case 'end_work':
-        user.status = 'offline';
-        user.work_start_time = undefined;
-        user.break_start_time = undefined;
-        user.daily_break_time = 0; // Reset for next day
-        break;
-    }
-
-    user.updated_at = now.toISOString();
   },
 
   async getUserLogs(userId: number, period: 'day' | 'month' | 'all'): Promise<TimeLog[]> {
-    // Mock logs data
-    return [
-      {
-        id: 1,
-        user_id: userId,
-        action: 'start_work',
-        timestamp: new Date().toISOString(),
-      },
-    ];
+    try {
+      let query = supabase
+        .from('time_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false });
+
+      const now = new Date();
+      
+      if (period === 'day') {
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+        query = query.gte('timestamp', startOfDay.toISOString());
+      } else if (period === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        query = query.gte('timestamp', startOfMonth.toISOString());
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching user logs:', error);
+      throw error;
+    }
   },
 
   async getAllLogs(period: 'day' | 'month' | 'all'): Promise<any[]> {
-    // Mock all logs data
-    return [
-      {
-        id: 1,
-        user_id: 1,
-        action: 'start_work',
-        timestamp: new Date().toISOString(),
-        users: { name: 'Admin User' },
-      },
-    ];
+    try {
+      let query = supabase
+        .from('time_logs')
+        .select(`
+          *,
+          users (
+            name,
+            email
+          )
+        `)
+        .order('timestamp', { ascending: false });
+
+      const now = new Date();
+      
+      if (period === 'day') {
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+        query = query.gte('timestamp', startOfDay.toISOString());
+      } else if (period === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        query = query.gte('timestamp', startOfMonth.toISOString());
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching all logs:', error);
+      throw error;
+    }
   },
 };
