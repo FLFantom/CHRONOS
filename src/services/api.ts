@@ -18,7 +18,7 @@ try {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Webhook URLs
+// Webhook URLs - ИСПРАВЛЕНЫ СОГЛАСНО ВАШИМ ТРЕБОВАНИЯМ
 const WEBHOOK_LATENESS_URL = 'https://gelding-able-sailfish.ngrok-free.app/webhook/lateness-report';
 const WEBHOOK_BREAK_EXCEEDED_URL = 'https://gelding-able-sailfish.ngrok-free.app/webhook/notify-break-exceeded';
 
@@ -139,13 +139,35 @@ const checkLateness = (startTime: Date, userName: string) => {
   }
 };
 
-// Check if break time is exceeded
+// Check if break time is exceeded - ВОССТАНОВЛЕНО
 const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
   // Send webhook with Tashkent time format
   sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, {
     userName,
     startTime: formatTashkentTime(breakStartTime),
   });
+};
+
+// Monitor break time and send notification when exceeded - НОВАЯ ФУНКЦИЯ
+const monitorBreakTime = async (userId: number, userName: string, breakStartTime: Date) => {
+  // Set timeout for MAX_BREAK_TIME (1 hour)
+  setTimeout(async () => {
+    try {
+      // Check if user is still on break
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('status')
+        .eq('id', userId)
+        .single();
+
+      if (!error && user && user.status === 'on_break') {
+        // User is still on break after 1 hour, send notification
+        checkBreakExceeded(breakStartTime, userName);
+      }
+    } catch (error) {
+      console.error('Error checking break status:', error);
+    }
+  }, MAX_BREAK_TIME * 1000); // 1 hour in milliseconds
 };
 
 // Check if current time is within working hours (Tashkent time)
@@ -482,7 +504,7 @@ export const usersAPI = {
           password: hashedPassword,
           updated_at: new Date().toISOString()
         })
-        .eq('userId', userId);
+        .eq('id', userId);
       
       if (error) {
         handleSupabaseError(error, 'change password - update');
@@ -539,7 +561,7 @@ export const timeLogsAPI = {
             updateData.work_start_time = now.toISOString();
           }
           
-          // Check for lateness using Tashkent time
+          // Check for lateness using Tashkent time - ВОССТАНОВЛЕНО
           if (user) {
             checkLateness(now, user.name);
           }
@@ -549,11 +571,9 @@ export const timeLogsAPI = {
           updateData.status = 'on_break';
           updateData.break_start_time = now.toISOString();
           
-          // Set up monitoring for break time exceeded
+          // Set up monitoring for break time exceeded - ВОССТАНОВЛЕНО
           if (user) {
-            setTimeout(() => {
-              checkBreakExceeded(now, user.name);
-            }, MAX_BREAK_TIME * 1000); // Send webhook after 1 hour
+            monitorBreakTime(userId, user.name, now);
           }
           break;
           
