@@ -17,7 +17,7 @@ import {
   Timer
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime } from '../services/api';
+import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, convertToTashkentTime } from '../services/api';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -217,11 +217,11 @@ const UserDashboard: React.FC = () => {
   };
 
   const formatTime = (date: Date) => {
-    return format(new Date(date.getTime()), 'HH:mm:ss');
+    return format(date, 'HH:mm:ss');
   };
 
   const formatDate = (date: Date) => {
-    return format(new Date(date.getTime()), 'EEEE, d MMMM yyyy г.', { locale: ru });
+    return format(date, 'EEEE, d MMMM yyyy г.', { locale: ru });
   };
 
   const getTotalBreakTime = () => {
@@ -250,7 +250,12 @@ const UserDashboard: React.FC = () => {
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    // Убираем ведущие нули для часов, если они равны 0
+    if (hours === 0) {
+      return `${minutes}:${String(secs).padStart(2, '0')}`;
+    }
+    
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   const isWorkingHours = isWithinWorkingHours();
@@ -426,7 +431,7 @@ const UserDashboard: React.FC = () => {
                   {formatCurrentBreakDuration(currentBreakDuration)}
                 </div>
                 <p className="text-xs text-gray-500">
-                  Начат в {breakStartTime ? format(new Date(breakStartTime.getTime()), 'HH:mm', { locale: ru }) : '--:--'}
+                  Начат в {breakStartTime ? format(convertToTashkentTime(breakStartTime), 'HH:mm', { locale: ru }) : '--:--'}
                 </p>
               </div>
             </div>

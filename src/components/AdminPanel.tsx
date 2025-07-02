@@ -20,7 +20,7 @@ import {
   Timer
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime } from '../services/api';
+import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime, convertToTashkentTime } from '../services/api';
 import { User, TimeStats, TimeLog } from '../types';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -365,8 +365,7 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
   };
 
   const formatLogTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const tashkentTime = new Date(date.getTime() + (5 * 60 * 60 * 1000)); // UTC+5
+    const tashkentTime = convertToTashkentTime(new Date(timestamp));
     return format(tashkentTime, 'dd.MM.yyyy HH:mm:ss', { locale: ru });
   };
 
@@ -510,8 +509,7 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const formatLogTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const tashkentTime = new Date(date.getTime() + (5 * 60 * 60 * 1000)); // UTC+5
+    const tashkentTime = convertToTashkentTime(new Date(timestamp));
     return format(tashkentTime, 'dd.MM.yyyy HH:mm:ss', { locale: ru });
   };
 

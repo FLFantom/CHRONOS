@@ -38,6 +38,7 @@ const getTashkentTime = () => {
 
 // Format date for Tashkent timezone in webhook format
 const formatTashkentTime = (date: Date) => {
+  // Convert to Tashkent time if it's not already
   const tashkentTime = new Date(date.getTime() + TASHKENT_OFFSET);
   
   const day = String(tashkentTime.getUTCDate()).padStart(2, '0');
@@ -48,6 +49,12 @@ const formatTashkentTime = (date: Date) => {
   const seconds = String(tashkentTime.getUTCSeconds()).padStart(2, '0');
   
   return `${day}.${month}.${year} в ${hours}:${minutes}:${seconds}`;
+};
+
+// Convert UTC time to Tashkent time
+const convertToTashkentTime = (utcDate: Date | string) => {
+  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+  return new Date(date.getTime() + TASHKENT_OFFSET);
 };
 
 // Test Supabase connection
@@ -119,7 +126,7 @@ const sendWebhook = async (url: string, data: any) => {
 
 // Check if user is late for work
 const checkLateness = (startTime: Date, userName: string) => {
-  const tashkentTime = new Date(startTime.getTime() + TASHKENT_OFFSET);
+  const tashkentTime = convertToTashkentTime(startTime);
   const workStartTime = new Date(tashkentTime);
   workStartTime.setUTCHours(WORK_START_HOUR, 0, 0, 0);
   
@@ -475,7 +482,7 @@ export const usersAPI = {
           password: hashedPassword,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);
+        .eq('userId', userId);
       
       if (error) {
         handleSupabaseError(error, 'change password - update');
@@ -673,4 +680,4 @@ export const timeLogsAPI = {
 };
 
 // Export utility functions
-export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime };
+export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime, convertToTashkentTime };
