@@ -197,10 +197,10 @@ const UserDashboard: React.FC = () => {
       
       // Calculate current break duration if user is on break
       if (user?.status === 'on_break' && user.break_start_time) {
-        // ИСПРАВЛЕНО: время из базы данных в UTC, текущее время тоже в UTC
-        const breakStartUTC = new Date(user.break_start_time); // Время из БД уже в UTC
-        const nowUTC = new Date(); // Текущее UTC время
-        const duration = Math.floor((nowUTC.getTime() - breakStartUTC.getTime()) / 1000);
+        // ИСПРАВЛЕНО: правильный расчет времени перерыва
+        const breakStartTime = new Date(user.break_start_time).getTime(); // Время из БД (UTC) в миллисекундах
+        const currentTime = Date.now(); // Текущее время в миллисекундах (всегда UTC)
+        const duration = Math.floor((currentTime - breakStartTime) / 1000);
         setCurrentBreakDuration(Math.max(0, duration));
       } else {
         setCurrentBreakDuration(0);
@@ -213,10 +213,10 @@ const UserDashboard: React.FC = () => {
   // Initialize break duration when component mounts or user changes
   useEffect(() => {
     if (user?.status === 'on_break' && user.break_start_time) {
-      // ИСПРАВЛЕНО: время из базы данных в UTC, текущее время тоже в UTC
-      const breakStartUTC = new Date(user.break_start_time); // Время из БД уже в UTC
-      const nowUTC = new Date(); // Текущее UTC время
-      const duration = Math.floor((nowUTC.getTime() - breakStartUTC.getTime()) / 1000);
+      // ИСПРАВЛЕНО: правильный расчет времени перерыва при инициализации
+      const breakStartTime = new Date(user.break_start_time).getTime(); // Время из БД (UTC) в миллисекундах
+      const currentTime = Date.now(); // Текущее время в миллисекундах (всегда UTC)
+      const duration = Math.floor((currentTime - breakStartTime) / 1000);
       setCurrentBreakDuration(Math.max(0, duration));
     } else {
       setCurrentBreakDuration(0);

@@ -741,8 +741,10 @@ const AdminPanel: React.FC = () => {
       return '—';
     }
     
-    const start = new Date(employee.break_start_time);
-    const currentBreakDuration = Math.floor((Date.now() - start.getTime()) / 1000);
+    // ИСПРАВЛЕНО: правильный расчет времени перерыва
+    const breakStartTime = new Date(employee.break_start_time).getTime(); // Время из БД (UTC) в миллисекундах
+    const currentTime = Date.now(); // Текущее время в миллисекундах (всегда UTC)
+    const currentBreakDuration = Math.floor((currentTime - breakStartTime) / 1000);
     const totalBreakTime = (employee.daily_break_time || 0) + currentBreakDuration;
     
     const hours = Math.floor(totalBreakTime / 3600);
