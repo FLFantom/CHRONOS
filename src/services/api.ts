@@ -111,19 +111,49 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw new Error(error.message || `Ошибка при выполнении операции: ${operation}`);
 };
 
-// Send webhook notification
-const sendWebhook = async (url: string, data: any) => {
+// Enhanced webhook sending with better error handling and logging
+const sendWebhook = async (url: string, data: any, webhookType: string) => {
   try {
-    console.log('Sending webhook:', { url, data });
-    await fetch(url, {
+    console.log(`🔔 Sending ${webhookType} webhook:`, { url, data, timestamp: new Date().toISOString() });
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': 'CHRONOS-TimeTracking-System/1.0',
+        'X-Webhook-Type': webhookType,
+        'X-Timestamp': new Date().toISOString(),
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        webhookType,
+        timestamp: new Date().toISOString(),
+        source: 'CHRONOS Time Tracking System'
+      }),
     });
+
+    if (response.ok) {
+      console.log(`✅ ${webhookType} webhook sent successfully:`, {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        data
+      });
+    } else {
+      console.error(`❌ ${webhookType} webhook failed:`, {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        data
+      });
+    }
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error(`🚨 ${webhookType} webhook error:`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      url,
+      data,
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -133,42 +163,76 @@ const checkLateness = (startTime: Date, userName: string) => {
   const workStartTime = new Date(tashkentTime);
   workStartTime.setHours(WORK_START_HOUR, 0, 0, 0);
   
+  console.log(`🕐 Checking lateness for ${userName}:`, {
+    startTime: formatTashkentTime(startTime),
+    workStartTime: formatTashkentTime(workStartTime),
+    isLate: tashkentTime > workStartTime
+  });
+  
   if (tashkentTime > workStartTime) {
     // User is late, send webhook with Tashkent time format
-    sendWebhook(WEBHOOK_LATENESS_URL, {
+    const webhookData = {
       userName,
       startTime: formatTashkentTime(startTime),
-    });
+    };
+    
+    console.log(`⏰ User ${userName} is late! Sending lateness webhook...`);
+    sendWebhook(WEBHOOK_LATENESS_URL, webhookData, 'lateness-report');
+  } else {
+    console.log(`✅ User ${userName} is on time.`);
   }
 };
 
 // Check if break time is exceeded - ПРОВЕРКА ПРЕВЫШЕНИЯ ПЕРЕРЫВА
 const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
-  // Send webhook with Tashkent time format
-  sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, {
+  const webhookData = {
     userName,
     startTime: formatTashkentTime(breakStartTime),
-  });
+  };
+  
+  console.log(`🚨 Break time exceeded for ${userName}! Sending break exceeded webhook...`);
+  sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, webhookData, 'break-exceeded');
 };
 
 // Monitor break time and send notification when exceeded - МОНИТОРИНГ ПЕРЕРЫВА
 const monitorBreakTime = async (userId: number, userName: string, breakStartTime: Date) => {
+  console.log(`⏱️ Starting break monitoring for ${userName} (${userId}):`, {
+    breakStartTime: formatTashkentTime(breakStartTime),
+    maxBreakTime: `${MAX_BREAK_TIME} seconds (1 hour)`,
+    willCheckAt: formatTashkentTime(new Date(breakStartTime.getTime() + MAX_BREAK_TIME * 1000))
+  });
+  
   // Set timeout for MAX_BREAK_TIME (1 hour)
   setTimeout(async () => {
     try {
+      console.log(`🔍 Checking break status for ${userName} after 1 hour...`);
+      
       // Check if user is still on break
       const { data: user, error } = await supabase
         .from('users')
-        .select('status')
+        .select('status, break_start_time')
         .eq('id', userId)
         .single();
 
-      if (!error && user && user.status === 'on_break') {
-        // User is still on break after 1 hour, send notification
-        checkBreakExceeded(breakStartTime, userName);
+      if (!error && user) {
+        console.log(`📊 Break status check result for ${userName}:`, {
+          currentStatus: user.status,
+          breakStartTime: user.break_start_time,
+          isStillOnBreak: user.status === 'on_break'
+        });
+        
+        if (user.status === 'on_break') {
+          // User is still on break after 1 hour, send notification
+          console.log(`🚨 ${userName} is still on break after 1 hour! Triggering webhook...`);
+          checkBreakExceeded(breakStartTime, userName);
+        } else {
+          console.log(`✅ ${userName} has already ended their break. No webhook needed.`);
+        }
+      } else {
+        console.error(`❌ Error checking break status for ${userName}:`, error);
       }
     } catch (error) {
-      console.error('Error checking break status:', error);
+      console.error(`🚨 Error in break monitoring for ${userName}:`, error);
     }
   }, MAX_BREAK_TIME * 1000); // 1 hour in milliseconds
 };
@@ -197,6 +261,8 @@ const checkColumnExists = async (columnName: string): Promise<boolean> => {
 export const authAPI = {
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
     try {
+      console.log(`🔐 Login attempt for: ${credentials.email}`);
+      
       // Test connection first
       const isConnected = await testConnection();
       if (!isConnected) {
@@ -211,10 +277,12 @@ export const authAPI = {
         .single();
 
       if (userError) {
+        console.error('❌ User lookup failed:', userError);
         handleSupabaseError(userError, 'login - get user');
       }
 
       if (!user) {
+        console.log('❌ User not found for email:', credentials.email);
         throw new Error('Неверный email или пароль');
       }
 
@@ -222,6 +290,7 @@ export const authAPI = {
       const isValidPassword = await verifyPassword(credentials.password, user.password);
       
       if (!isValidPassword) {
+        console.log('❌ Invalid password for user:', credentials.email);
         throw new Error('Неверный email или пароль');
       }
 
@@ -231,11 +300,14 @@ export const authAPI = {
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
 
+      console.log(`✅ Login successful for: ${credentials.email} (${user.name})`);
+
       return {
         user: userWithoutPassword as User,
         token,
       };
     } catch (error) {
+      console.error('🚨 Login error:', error);
       if (error instanceof Error) {
         throw error;
       }
@@ -532,6 +604,8 @@ export const timeLogsAPI = {
     try {
       const now = new Date();
       
+      console.log(`📝 Logging action: ${action} for user ${userId} at ${formatTashkentTime(now)}`);
+      
       // Get user data for webhook notifications
       const { data: user, error: userError } = await supabase
         .from('users')
@@ -572,6 +646,7 @@ export const timeLogsAPI = {
           
           // Check for lateness using Tashkent time - ВОССТАНОВЛЕНО
           if (user) {
+            console.log(`🔍 Checking lateness for ${user.name}...`);
             checkLateness(now, user.name);
           }
           break;
@@ -582,6 +657,7 @@ export const timeLogsAPI = {
           
           // Set up monitoring for break time exceeded - ВОССТАНОВЛЕНО
           if (user) {
+            console.log(`⏱️ Setting up break monitoring for ${user.name}...`);
             monitorBreakTime(userId, user.name, now);
           }
           break;
@@ -624,7 +700,10 @@ export const timeLogsAPI = {
           handleSupabaseError(updateError, 'log action - update user');
         }
       }
+
+      console.log(`✅ Action ${action} logged successfully for user ${userId}`);
     } catch (error) {
+      console.error(`🚨 Error logging action ${action} for user ${userId}:`, error);
       if (error instanceof Error) {
         throw error;
       }
