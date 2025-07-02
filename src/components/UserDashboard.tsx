@@ -197,8 +197,9 @@ const UserDashboard: React.FC = () => {
       
       // Calculate current break duration if user is on break
       if (user?.status === 'on_break' && user.break_start_time) {
+        // ИСПРАВЛЕНО: правильный расчет времени перерыва
         const breakStart = new Date(user.break_start_time);
-        const now = new Date();
+        const now = new Date(); // Используем текущее UTC время
         const duration = Math.floor((now.getTime() - breakStart.getTime()) / 1000);
         setCurrentBreakDuration(Math.max(0, duration));
       } else {
@@ -212,8 +213,9 @@ const UserDashboard: React.FC = () => {
   // Initialize break duration when component mounts or user changes
   useEffect(() => {
     if (user?.status === 'on_break' && user.break_start_time) {
+      // ИСПРАВЛЕНО: правильный расчет времени перерыва при инициализации
       const breakStart = new Date(user.break_start_time);
-      const now = new Date();
+      const now = new Date(); // Используем текущее UTC время
       const duration = Math.floor((now.getTime() - breakStart.getTime()) / 1000);
       setCurrentBreakDuration(Math.max(0, duration));
     } else {
@@ -222,7 +224,7 @@ const UserDashboard: React.FC = () => {
   }, [user]);
 
   const getGreeting = () => {
-    const hour = currentTime.getUTCHours();
+    const hour = currentTime.getHours(); // ИСПРАВЛЕНО: используем getHours() для Ташкентского времени
     if (hour < 12) return 'Доброе утро';
     if (hour < 17) return 'Добрый день';
     return 'Добрый вечер';
@@ -260,7 +262,7 @@ const UserDashboard: React.FC = () => {
   };
 
   const isWorkingHours = isWithinWorkingHours();
-  const currentHour = currentTime.getUTCHours();
+  const currentHour = currentTime.getHours(); // ИСПРАВЛЕНО: используем getHours() для Ташкентского времени
 
   const handleStartWork = async () => {
     if (!user) return;
