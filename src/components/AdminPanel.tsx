@@ -879,7 +879,7 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-8 relative overflow-hidden">
       {/* Enhanced animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full opacity-10 animate-pulse"></div>
@@ -888,9 +888,9 @@ const AdminPanel: React.FC = () => {
       </div>
 
       <div className="max-w-full mx-auto relative z-10">
-        {/* Enhanced header */}
-        <div className="flex justify-between items-center mb-10">
-          <div className="flex items-center gap-6">
+        {/* Enhanced header with better spacing */}
+        <div className="flex justify-between items-center mb-12">
+          <div className="flex items-center gap-8">
             <button
               onClick={() => navigate('/')}
               className="bg-gradient-to-r from-gray-500 to-gray-600 rounded-2xl w-16 h-16 flex items-center justify-center hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105"
@@ -901,14 +901,14 @@ const AdminPanel: React.FC = () => {
               <Settings className="w-10 h-10 text-white" />
             </div>
             <div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 flex items-center gap-3">
                 Админ-панель
                 <Sparkles className="w-10 h-10 text-purple-500 animate-pulse" />
               </h1>
-              <p className="text-gray-600 text-xl">
+              <p className="text-gray-600 text-xl mb-3">
                 Управление сотрудниками и учет рабочего времени
               </p>
-              <p className="text-gray-500 mt-2 bg-gray-100 rounded-lg px-4 py-2 inline-block">
+              <p className="text-gray-500 bg-gray-100 rounded-lg px-4 py-2 inline-block">
                 Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 (Ташкентское время) | Лимит перерыва: 1 час
               </p>
             </div>
@@ -939,8 +939,8 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced stats cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        {/* Enhanced stats cards with better spacing */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-3xl p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-xl">На работе</h3>
@@ -986,10 +986,10 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* ИСПРАВЛЕНО: Расширенная таблица сотрудников на всю ширину экрана */}
+        {/* Enhanced employee table with better spacing */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
-          <div className="p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
-            <div className="flex items-center justify-between mb-6">
+          <div className="p-10 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+            <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
                 <Users className="w-8 h-8 text-blue-600" />
                 <h2 className="text-3xl font-bold text-gray-800">
@@ -1002,7 +1002,7 @@ const AdminPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Enhanced search bar */}
+            {/* Enhanced search bar with better spacing */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-6 w-6 text-gray-400" />
@@ -1025,7 +1025,7 @@ const AdminPanel: React.FC = () => {
             </div>
 
             {searchQuery && (
-              <div className="mt-4 text-gray-600 bg-white/60 rounded-xl px-4 py-3">
+              <div className="mt-6 text-gray-600 bg-white/60 rounded-xl px-4 py-3">
                 {filteredUsers.length === 0 ? (
                   <span className="text-red-600 font-medium">Сотрудники не найдены</span>
                 ) : (
@@ -1037,28 +1037,28 @@ const AdminPanel: React.FC = () => {
             )}
           </div>
 
-          {/* ИСПРАВЛЕНО: Увеличена высота таблицы и расширена на всю ширину */}
-          <div className="overflow-x-auto w-full" style={{ height: '70vh' }}>
+          {/* Enhanced table with better spacing */}
+          <div className="overflow-x-auto w-full" style={{ height: '65vh' }}>
             <div className="overflow-y-auto h-full">
               <table className="w-full min-w-full">
                 <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[250px]">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[280px]">
                       Сотрудник
                     </th>
-                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[150px]">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[160px]">
                       Статус
                     </th>
-                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[180px]">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[200px]">
                       Текущий перерыв
                     </th>
-                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[180px]">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[200px]">
                       Перерыв за день
                     </th>
-                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[120px]">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[140px]">
                       Роль
                     </th>
-                    <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[300px]">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider min-w-[320px]">
                       Действия
                     </th>
                   </tr>
@@ -1066,7 +1066,7 @@ const AdminPanel: React.FC = () => {
                 <tbody className="divide-y divide-gray-100">
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-8 py-16 text-center">
+                      <td colSpan={6} className="px-8 py-20 text-center">
                         <div className="text-gray-500">
                           {searchQuery ? (
                             <div>
@@ -1086,9 +1086,9 @@ const AdminPanel: React.FC = () => {
                   ) : (
                     filteredUsers.map((employee) => (
                       <tr key={employee.id} className="hover:bg-gray-50/80 transition-all duration-200">
-                        <td className="px-6 py-6">
+                        <td className="px-8 py-8">
                           <div>
-                            <div className="font-bold text-gray-800 text-lg">
+                            <div className="font-bold text-gray-800 text-lg mb-1">
                               {employee.name}
                             </div>
                             <div className="text-gray-500 font-medium">
@@ -1096,17 +1096,17 @@ const AdminPanel: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-6">
+                        <td className="px-8 py-8">
                           <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border ${getStatusColor(employee.status)}`}>
                             {employee.status === 'working' && <Timer className="w-4 h-4" />}
                             {employee.status === 'on_break' && <Coffee className="w-4 h-4" />}
                             {getStatusText(employee.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-6 text-gray-600 font-medium">
+                        <td className="px-8 py-8 text-gray-600 font-medium">
                           {formatBreakTime(employee)}
                         </td>
-                        <td className="px-6 py-6">
+                        <td className="px-8 py-8">
                           <span className={`font-bold ${
                             (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-600'
                           }`}>
@@ -1116,15 +1116,15 @@ const AdminPanel: React.FC = () => {
                             )}
                           </span>
                         </td>
-                        <td className="px-6 py-6">
+                        <td className="px-8 py-8">
                           <span className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold border ${
                             employee.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'
                           }`}>
                             {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
                           </span>
                         </td>
-                        <td className="px-6 py-6">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <td className="px-8 py-8">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <button
                               onClick={() => handleImpersonateUser(employee.id)}
                               className="p-3 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
