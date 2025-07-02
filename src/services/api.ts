@@ -27,6 +27,29 @@ const WORK_START_HOUR = 9; // 9:00
 const WORK_END_HOUR = 18; // 18:00
 const MAX_BREAK_TIME = 3600; // 1 hour in seconds
 
+// Tashkent timezone offset (UTC+5)
+const TASHKENT_OFFSET = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+
+// Get current time in Tashkent timezone
+const getTashkentTime = () => {
+  const now = new Date();
+  return new Date(now.getTime() + TASHKENT_OFFSET);
+};
+
+// Format date for Tashkent timezone in webhook format
+const formatTashkentTime = (date: Date) => {
+  const tashkentTime = new Date(date.getTime() + TASHKENT_OFFSET);
+  
+  const day = String(tashkentTime.getUTCDate()).padStart(2, '0');
+  const month = String(tashkentTime.getUTCMonth() + 1).padStart(2, '0');
+  const year = tashkentTime.getUTCFullYear();
+  const hours = String(tashkentTime.getUTCHours()).padStart(2, '0');
+  const minutes = String(tashkentTime.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(tashkentTime.getUTCSeconds()).padStart(2, '0');
+  
+  return `${day}.${month}.${year} в ${hours}:${minutes}:${seconds}`;
+};
+
 // Test Supabase connection
 const testConnection = async () => {
   try {
@@ -81,6 +104,7 @@ const handleSupabaseError = (error: any, operation: string) => {
 // Send webhook notification
 const sendWebhook = async (url: string, data: any) => {
   try {
+    console.log('Sending webhook:', { url, data });
     await fetch(url, {
       method: 'POST',
       headers: {
@@ -95,33 +119,32 @@ const sendWebhook = async (url: string, data: any) => {
 
 // Check if user is late for work
 const checkLateness = (startTime: Date, userName: string) => {
-  const workStartTime = new Date(startTime);
-  workStartTime.setHours(WORK_START_HOUR, 0, 0, 0);
+  const tashkentTime = new Date(startTime.getTime() + TASHKENT_OFFSET);
+  const workStartTime = new Date(tashkentTime);
+  workStartTime.setUTCHours(WORK_START_HOUR, 0, 0, 0);
   
-  if (startTime > workStartTime) {
-    // User is late, send webhook
+  if (tashkentTime > workStartTime) {
+    // User is late, send webhook with Tashkent time format
     sendWebhook(WEBHOOK_LATENESS_URL, {
       userName,
-      startTime: startTime.toISOString(),
+      startTime: formatTashkentTime(startTime),
     });
   }
 };
 
 // Check if break time is exceeded
-const checkBreakExceeded = (breakStartTime: Date, userName: string, totalBreakTime: number) => {
-  if (totalBreakTime > MAX_BREAK_TIME) {
-    // Break time exceeded, send webhook
-    sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, {
-      userName,
-      startTime: breakStartTime.toISOString(),
-    });
-  }
+const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
+  // Send webhook with Tashkent time format
+  sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, {
+    userName,
+    startTime: formatTashkentTime(breakStartTime),
+  });
 };
 
-// Check if current time is within working hours
+// Check if current time is within working hours (Tashkent time)
 const isWithinWorkingHours = () => {
-  const now = new Date();
-  const currentHour = now.getHours();
+  const tashkentTime = getTashkentTime();
+  const currentHour = tashkentTime.getUTCHours();
   return currentHour >= WORK_START_HOUR && currentHour < WORK_END_HOUR;
 };
 
@@ -210,14 +233,16 @@ export const usersAPI = {
       // Calculate daily break time for each user
       const usersWithBreakTime = await Promise.all(
         (data || []).map(async (user) => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          // Use Tashkent time for today calculation
+          const tashkentNow = getTashkentTime();
+          const today = new Date(tashkentNow);
+          today.setUTCHours(0, 0, 0, 0);
           
           const { data: todayLogs, error: logsError } = await supabase
             .from('time_logs')
             .select('*')
             .eq('user_id', user.id)
-            .gte('timestamp', today.toISOString())
+            .gte('timestamp', new Date(today.getTime() - TASHKENT_OFFSET).toISOString())
             .order('timestamp', { ascending: true });
 
           if (logsError) {
@@ -275,15 +300,16 @@ export const usersAPI = {
         handleSupabaseError(error, 'getById user');
       }
 
-      // Calculate daily break time
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Calculate daily break time using Tashkent time
+      const tashkentNow = getTashkentTime();
+      const today = new Date(tashkentNow);
+      today.setUTCHours(0, 0, 0, 0);
       
       const { data: todayLogs, error: logsError } = await supabase
         .from('time_logs')
         .select('*')
         .eq('user_id', id)
-        .gte('timestamp', today.toISOString())
+        .gte('timestamp', new Date(today.getTime() - TASHKENT_OFFSET).toISOString())
         .order('timestamp', { ascending: true });
 
       let dailyBreakTime = 0;
@@ -468,7 +494,7 @@ export const timeLogsAPI = {
     try {
       const now = new Date();
       
-      // Get user data for webhook notifications - removed daily_break_time from select
+      // Get user data for webhook notifications
       const { data: user, error: userError } = await supabase
         .from('users')
         .select('name, break_start_time')
@@ -506,7 +532,7 @@ export const timeLogsAPI = {
             updateData.work_start_time = now.toISOString();
           }
           
-          // Check for lateness
+          // Check for lateness using Tashkent time
           if (user) {
             checkLateness(now, user.name);
           }
@@ -515,6 +541,13 @@ export const timeLogsAPI = {
         case 'start_break':
           updateData.status = 'on_break';
           updateData.break_start_time = now.toISOString();
+          
+          // Set up monitoring for break time exceeded
+          if (user) {
+            setTimeout(() => {
+              checkBreakExceeded(now, user.name);
+            }, MAX_BREAK_TIME * 1000); // Send webhook after 1 hour
+          }
           break;
           
         case 'end_break':
@@ -555,38 +588,6 @@ export const timeLogsAPI = {
           handleSupabaseError(updateError, 'log action - update user');
         }
       }
-
-      // Check for break time exceeded (only when starting a break)
-      if (action === 'start_break' && user) {
-        // Calculate current total break time
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const { data: todayLogs } = await supabase
-          .from('time_logs')
-          .select('*')
-          .eq('user_id', userId)
-          .gte('timestamp', today.toISOString())
-          .order('timestamp', { ascending: true });
-
-        let totalBreakTime = 0;
-        let currentBreakStart: Date | null = null;
-
-        todayLogs?.forEach((log) => {
-          if (log.action === 'start_break') {
-            currentBreakStart = new Date(log.timestamp);
-          } else if (log.action === 'end_break' && currentBreakStart) {
-            const breakEnd = new Date(log.timestamp);
-            totalBreakTime += Math.floor((breakEnd.getTime() - currentBreakStart.getTime()) / 1000);
-            currentBreakStart = null;
-          }
-        });
-
-        // Set up monitoring for break time exceeded - fixed the argument
-        setTimeout(() => {
-          checkBreakExceeded(now, user.name, totalBreakTime);
-        }, MAX_BREAK_TIME * 1000);
-      }
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -603,15 +604,15 @@ export const timeLogsAPI = {
         .eq('user_id', userId)
         .order('timestamp', { ascending: false });
 
-      const now = new Date();
+      const tashkentNow = getTashkentTime();
       
       if (period === 'day') {
-        const startOfDay = new Date(now);
-        startOfDay.setHours(0, 0, 0, 0);
-        query = query.gte('timestamp', startOfDay.toISOString());
+        const startOfDay = new Date(tashkentNow);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        query = query.gte('timestamp', new Date(startOfDay.getTime() - TASHKENT_OFFSET).toISOString());
       } else if (period === 'month') {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        query = query.gte('timestamp', startOfMonth.toISOString());
+        const startOfMonth = new Date(tashkentNow.getUTCFullYear(), tashkentNow.getUTCMonth(), 1);
+        query = query.gte('timestamp', new Date(startOfMonth.getTime() - TASHKENT_OFFSET).toISOString());
       }
 
       const { data, error } = await query;
@@ -643,15 +644,15 @@ export const timeLogsAPI = {
         `)
         .order('timestamp', { ascending: false });
 
-      const now = new Date();
+      const tashkentNow = getTashkentTime();
       
       if (period === 'day') {
-        const startOfDay = new Date(now);
-        startOfDay.setHours(0, 0, 0, 0);
-        query = query.gte('timestamp', startOfDay.toISOString());
+        const startOfDay = new Date(tashkentNow);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        query = query.gte('timestamp', new Date(startOfDay.getTime() - TASHKENT_OFFSET).toISOString());
       } else if (period === 'month') {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        query = query.gte('timestamp', startOfMonth.toISOString());
+        const startOfMonth = new Date(tashkentNow.getUTCFullYear(), tashkentNow.getUTCMonth(), 1);
+        query = query.gte('timestamp', new Date(startOfMonth.getTime() - TASHKENT_OFFSET).toISOString());
       }
 
       const { data, error } = await query;
@@ -672,4 +673,4 @@ export const timeLogsAPI = {
 };
 
 // Export utility functions
-export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME };
+export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime };

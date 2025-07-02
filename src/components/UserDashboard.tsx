@@ -17,7 +17,7 @@ import {
   Timer
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME } from '../services/api';
+import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime } from '../services/api';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -180,14 +180,15 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
 const UserDashboard: React.FC = () => {
   const { user, logout, impersonating, exitImpersonation, updateUserStatus } = useAuth();
   const navigate = useNavigate();
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getTashkentTime());
   const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
   const [currentBreakDuration, setCurrentBreakDuration] = useState(0);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
+      const tashkentTime = getTashkentTime();
+      setCurrentTime(tashkentTime);
       
       if (breakStartTime) {
         const duration = Math.floor((Date.now() - breakStartTime.getTime()) / 1000);
@@ -209,18 +210,18 @@ const UserDashboard: React.FC = () => {
   }, [user]);
 
   const getGreeting = () => {
-    const hour = currentTime.getHours();
+    const hour = currentTime.getUTCHours();
     if (hour < 12) return 'Доброе утро';
     if (hour < 17) return 'Добрый день';
     return 'Добрый вечер';
   };
 
   const formatTime = (date: Date) => {
-    return format(date, 'HH:mm:ss');
+    return format(new Date(date.getTime()), 'HH:mm:ss');
   };
 
   const formatDate = (date: Date) => {
-    return format(date, 'EEEE, d MMMM yyyy г.', { locale: ru });
+    return format(new Date(date.getTime()), 'EEEE, d MMMM yyyy г.', { locale: ru });
   };
 
   const getTotalBreakTime = () => {
@@ -253,7 +254,7 @@ const UserDashboard: React.FC = () => {
   };
 
   const isWorkingHours = isWithinWorkingHours();
-  const currentHour = currentTime.getHours();
+  const currentHour = currentTime.getUTCHours();
 
   const handleStartWork = async () => {
     if (!user) return;
@@ -425,7 +426,7 @@ const UserDashboard: React.FC = () => {
                   {formatCurrentBreakDuration(currentBreakDuration)}
                 </div>
                 <p className="text-xs text-gray-500">
-                  Начат в {breakStartTime ? format(breakStartTime, 'HH:mm', { locale: ru }) : '--:--'}
+                  Начат в {breakStartTime ? format(new Date(breakStartTime.getTime()), 'HH:mm', { locale: ru }) : '--:--'}
                 </p>
               </div>
             </div>
@@ -479,7 +480,7 @@ const UserDashboard: React.FC = () => {
               <div className="flex items-center gap-2 mt-2 text-amber-600">
                 <AlertTriangle className="w-4 h-4" />
                 <span className="text-sm">
-                  Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00
+                  Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 (Ташкентское время)
                 </span>
               </div>
             )}
@@ -529,7 +530,7 @@ const UserDashboard: React.FC = () => {
             {formatTime(currentTime)}
           </div>
           <p className="text-blue-100 text-xl">
-            Текущее время
+            Текущее время (Ташкент)
           </p>
           
           {!isWorkingHours && (

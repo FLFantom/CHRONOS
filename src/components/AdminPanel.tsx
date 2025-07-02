@@ -20,7 +20,7 @@ import {
   Timer
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME } from '../services/api';
+import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime } from '../services/api';
 import { User, TimeStats, TimeLog } from '../types';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -364,6 +364,12 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
     }
   };
 
+  const formatLogTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const tashkentTime = new Date(date.getTime() + (5 * 60 * 60 * 1000)); // UTC+5
+    return format(tashkentTime, 'dd.MM.yyyy HH:mm:ss', { locale: ru });
+  };
+
   if (!isOpen || !user) return null;
 
   return (
@@ -433,7 +439,7 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
                       {getActionText(log.action)}
                     </span>
                     <span className="text-gray-600">
-                      {format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm:ss', { locale: ru })}
+                      {formatLogTime(log.timestamp)}
                     </span>
                   </div>
                 </div>
@@ -501,6 +507,12 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
       case 'end_work': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const formatLogTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const tashkentTime = new Date(date.getTime() + (5 * 60 * 60 * 1000)); // UTC+5
+    return format(tashkentTime, 'dd.MM.yyyy HH:mm:ss', { locale: ru });
   };
 
   if (!isOpen) return null;
@@ -575,7 +587,7 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
                       {getActionText(log.action)}
                     </span>
                     <span className="text-gray-600">
-                      {format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm:ss', { locale: ru })}
+                      {formatLogTime(log.timestamp)}
                     </span>
                   </div>
                 </div>
@@ -800,7 +812,7 @@ const AdminPanel: React.FC = () => {
                 Управление сотрудниками и учет рабочего времени
               </p>
               <p className="text-sm text-gray-500">
-                Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 | Лимит перерыва: 1 час
+                Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 (Ташкентское время) | Лимит перерыва: 1 час
               </p>
             </div>
           </div>
