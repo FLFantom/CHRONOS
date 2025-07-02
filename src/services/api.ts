@@ -27,18 +27,18 @@ const WORK_START_HOUR = 9; // 9:00
 const WORK_END_HOUR = 18; // 18:00
 const MAX_BREAK_TIME = 3600; // 1 hour in seconds
 
-// Tashkent timezone offset (UTC+5)
+// Tashkent timezone offset (UTC+5) - КРИТИЧЕСКИ ВАЖНО: НЕ ИЗМЕНЯТЬ!
 const TASHKENT_OFFSET = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
 
-// Get current time in Tashkent timezone
+// Get current time in Tashkent timezone - ВСЕГДА ИСПОЛЬЗУЙТЕ ЭТУ ФУНКЦИЮ
 const getTashkentTime = () => {
   const now = new Date();
   return new Date(now.getTime() + TASHKENT_OFFSET);
 };
 
-// Format date for Tashkent timezone in webhook format
+// Format date for Tashkent timezone in webhook format - ФОРМАТ ДЛЯ WEBHOOK
 const formatTashkentTime = (date: Date) => {
-  // Convert to Tashkent time if it's not already
+  // Ensure we're working with Tashkent time
   const tashkentTime = new Date(date.getTime() + TASHKENT_OFFSET);
   
   const day = String(tashkentTime.getUTCDate()).padStart(2, '0');
@@ -51,7 +51,7 @@ const formatTashkentTime = (date: Date) => {
   return `${day}.${month}.${year} в ${hours}:${minutes}:${seconds}`;
 };
 
-// Convert UTC time to Tashkent time
+// Convert UTC time to Tashkent time - ДЛЯ КОНВЕРТАЦИИ UTC В ТАШКЕНТ
 const convertToTashkentTime = (utcDate: Date | string) => {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
   return new Date(date.getTime() + TASHKENT_OFFSET);
@@ -124,7 +124,7 @@ const sendWebhook = async (url: string, data: any) => {
   }
 };
 
-// Check if user is late for work
+// Check if user is late for work - ПРОВЕРКА ОПОЗДАНИЯ
 const checkLateness = (startTime: Date, userName: string) => {
   const tashkentTime = convertToTashkentTime(startTime);
   const workStartTime = new Date(tashkentTime);
@@ -139,7 +139,7 @@ const checkLateness = (startTime: Date, userName: string) => {
   }
 };
 
-// Check if break time is exceeded - ВОССТАНОВЛЕНО
+// Check if break time is exceeded - ПРОВЕРКА ПРЕВЫШЕНИЯ ПЕРЕРЫВА
 const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
   // Send webhook with Tashkent time format
   sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, {
@@ -148,7 +148,7 @@ const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
   });
 };
 
-// Monitor break time and send notification when exceeded - НОВАЯ ФУНКЦИЯ
+// Monitor break time and send notification when exceeded - МОНИТОРИНГ ПЕРЕРЫВА
 const monitorBreakTime = async (userId: number, userName: string, breakStartTime: Date) => {
   // Set timeout for MAX_BREAK_TIME (1 hour)
   setTimeout(async () => {
@@ -259,7 +259,7 @@ export const usersAPI = {
         handleSupabaseError(error, 'getAll users');
       }
 
-      // Calculate daily break time for each user
+      // Calculate daily break time for each user using Tashkent time
       const usersWithBreakTime = await Promise.all(
         (data || []).map(async (user) => {
           // Use Tashkent time for today calculation
@@ -267,11 +267,14 @@ export const usersAPI = {
           const today = new Date(tashkentNow);
           today.setUTCHours(0, 0, 0, 0);
           
+          // Convert back to UTC for database query
+          const todayUTC = new Date(today.getTime() - TASHKENT_OFFSET);
+          
           const { data: todayLogs, error: logsError } = await supabase
             .from('time_logs')
             .select('*')
             .eq('user_id', user.id)
-            .gte('timestamp', new Date(today.getTime() - TASHKENT_OFFSET).toISOString())
+            .gte('timestamp', todayUTC.toISOString())
             .order('timestamp', { ascending: true });
 
           if (logsError) {
@@ -334,11 +337,14 @@ export const usersAPI = {
       const today = new Date(tashkentNow);
       today.setUTCHours(0, 0, 0, 0);
       
+      // Convert back to UTC for database query
+      const todayUTC = new Date(today.getTime() - TASHKENT_OFFSET);
+      
       const { data: todayLogs, error: logsError } = await supabase
         .from('time_logs')
         .select('*')
         .eq('user_id', id)
-        .gte('timestamp', new Date(today.getTime() - TASHKENT_OFFSET).toISOString())
+        .gte('timestamp', todayUTC.toISOString())
         .order('timestamp', { ascending: true });
 
       let dailyBreakTime = 0;
@@ -636,10 +642,14 @@ export const timeLogsAPI = {
       if (period === 'day') {
         const startOfDay = new Date(tashkentNow);
         startOfDay.setUTCHours(0, 0, 0, 0);
-        query = query.gte('timestamp', new Date(startOfDay.getTime() - TASHKENT_OFFSET).toISOString());
+        // Convert back to UTC for database query
+        const startOfDayUTC = new Date(startOfDay.getTime() - TASHKENT_OFFSET);
+        query = query.gte('timestamp', startOfDayUTC.toISOString());
       } else if (period === 'month') {
         const startOfMonth = new Date(tashkentNow.getUTCFullYear(), tashkentNow.getUTCMonth(), 1);
-        query = query.gte('timestamp', new Date(startOfMonth.getTime() - TASHKENT_OFFSET).toISOString());
+        // Convert back to UTC for database query
+        const startOfMonthUTC = new Date(startOfMonth.getTime() - TASHKENT_OFFSET);
+        query = query.gte('timestamp', startOfMonthUTC.toISOString());
       }
 
       const { data, error } = await query;
@@ -676,10 +686,14 @@ export const timeLogsAPI = {
       if (period === 'day') {
         const startOfDay = new Date(tashkentNow);
         startOfDay.setUTCHours(0, 0, 0, 0);
-        query = query.gte('timestamp', new Date(startOfDay.getTime() - TASHKENT_OFFSET).toISOString());
+        // Convert back to UTC for database query
+        const startOfDayUTC = new Date(startOfDay.getTime() - TASHKENT_OFFSET);
+        query = query.gte('timestamp', startOfDayUTC.toISOString());
       } else if (period === 'month') {
         const startOfMonth = new Date(tashkentNow.getUTCFullYear(), tashkentNow.getUTCMonth(), 1);
-        query = query.gte('timestamp', new Date(startOfMonth.getTime() - TASHKENT_OFFSET).toISOString());
+        // Convert back to UTC for database query
+        const startOfMonthUTC = new Date(startOfMonth.getTime() - TASHKENT_OFFSET);
+        query = query.gte('timestamp', startOfMonthUTC.toISOString());
       }
 
       const { data, error } = await query;

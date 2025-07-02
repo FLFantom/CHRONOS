@@ -441,7 +441,7 @@ const UserDashboard: React.FC = () => {
                     {formatBreakDuration(currentBreakDuration)}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Начат в {user.break_start_time ? format(new Date(user.break_start_time), 'HH:mm', { locale: ru }) : '--:--'} (Ташкент)
+                    Начат в {user.break_start_time ? format(convertToTashkentTime(user.break_start_time), 'HH:mm', { locale: ru }) : '--:--'} (Ташкент)
                   </p>
                 </div>
 
