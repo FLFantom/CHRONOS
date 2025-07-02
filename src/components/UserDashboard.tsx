@@ -14,7 +14,13 @@ import {
   X,
   AlertTriangle,
   Coffee,
-  Timer
+  Timer,
+  TrendingUp,
+  Calendar,
+  Target,
+  Activity,
+  Zap,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, convertToTashkentTime } from '../services/api';
@@ -246,11 +252,11 @@ const UserDashboard: React.FC = () => {
   };
 
   const formatCurrentBreakDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     
-    // Показываем только минуты:секунды для текущего перерыва
-    return `${minutes}:${String(secs).padStart(2, '0')}`;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   const isWorkingHours = isWithinWorkingHours();
@@ -336,36 +342,52 @@ const UserDashboard: React.FC = () => {
 
   if (!user) return null;
 
-  // Break screen with enhanced design
+  // Enhanced break screen with beautiful design and better functionality
   if (user.status === 'on_break') {
     const totalBreakTime = getTotalBreakTime();
     const isExceeded = totalBreakTime > MAX_BREAK_TIME;
-    const remainingTime = MAX_BREAK_TIME - totalBreakTime;
+    const remainingTime = Math.max(0, MAX_BREAK_TIME - totalBreakTime);
+    const progressPercentage = Math.min(100, (totalBreakTime / MAX_BREAK_TIME) * 100);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-red-50 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-red-50 p-4 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-orange-200 rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-red-200 rounded-full opacity-30 animate-bounce"></div>
+          <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-amber-200 rounded-full opacity-15 animate-pulse"></div>
+          <div className="absolute bottom-40 right-1/3 w-20 h-20 bg-orange-300 rounded-full opacity-25 animate-bounce"></div>
+        </div>
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          {/* Enhanced header */}
           <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-3">
-              <div className={`rounded-full w-12 h-12 flex items-center justify-center ${
-                isExceeded ? 'bg-red-500' : 'bg-orange-500'
+            <div className="flex items-center gap-4">
+              <div className={`rounded-full w-16 h-16 flex items-center justify-center shadow-lg ${
+                isExceeded ? 'bg-gradient-to-br from-red-500 to-red-600 animate-pulse' : 'bg-gradient-to-br from-orange-400 to-red-500'
               }`}>
-                <Coffee className="w-6 h-6 text-white" />
+                <Coffee className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
+                <h1 className="text-3xl font-bold text-gray-800 mb-1">
                   Перерыв в процессе
                 </h1>
-                <p className="text-gray-600">
-                  {isExceeded ? 'Время превышено!' : `Осталось: ${formatCurrentBreakDuration(remainingTime)}`}
+                <p className="text-gray-600 text-lg">
+                  {format(currentTime, 'EEEE, d MMMM yyyy г.', { locale: ru })}
                 </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-500">
+                    Текущее время: {formatTime(currentTime)}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex gap-4">
               {user.role === 'admin' && !impersonating && (
                 <button
                   onClick={() => navigate('/admin')}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-lg"
                 >
                   <Settings className="w-4 h-4" />
                   Админ панель
@@ -374,14 +396,14 @@ const UserDashboard: React.FC = () => {
               {impersonating && (
                 <button
                   onClick={exitImpersonation}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-lg"
                 >
                   Назад к панели
                 </button>
               )}
               <button
                 onClick={logout}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white rounded-lg hover:bg-gray-50 transition-colors shadow-lg"
               >
                 <LogOut className="w-4 h-4" />
                 Выйти
@@ -389,75 +411,185 @@ const UserDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-2xl p-8 text-center relative overflow-hidden">
-            {/* Background decoration */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-400 to-red-500"></div>
-            
-            <div className={`rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-8 ${
-              isExceeded 
-                ? 'bg-gradient-to-br from-red-500 to-red-600 animate-pulse' 
-                : 'bg-gradient-to-br from-orange-400 to-red-500'
-            }`}>
-              <Timer className="w-16 h-16 text-white" />
+          {/* Main break content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            {/* Central timer display */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-3xl shadow-2xl p-8 text-center relative overflow-hidden">
+                {/* Background decoration */}
+                <div className={`absolute top-0 left-0 w-full h-2 ${
+                  isExceeded 
+                    ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                    : 'bg-gradient-to-r from-orange-400 to-red-500'
+                }`}></div>
+                
+                <div className={`rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-8 ${
+                  isExceeded 
+                    ? 'bg-gradient-to-br from-red-500 to-red-600 animate-pulse' 
+                    : 'bg-gradient-to-br from-orange-400 to-red-500'
+                }`}>
+                  <Timer className="w-16 h-16 text-white" />
+                </div>
+                
+                <h2 className="text-4xl font-bold text-gray-800 mb-6">
+                  Вы на перерыве
+                </h2>
+                
+                {/* Current break timer */}
+                <div className="mb-8">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Текущий перерыв:
+                  </p>
+                  <div className="text-6xl font-mono font-bold text-blue-600 mb-2">
+                    {formatCurrentBreakDuration(currentBreakDuration)}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Начат в {breakStartTime ? format(convertToTashkentTime(breakStartTime), 'HH:mm', { locale: ru }) : '--:--'}
+                  </p>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">Использовано времени</span>
+                    <span className="text-sm font-medium text-gray-800">{Math.round(progressPercentage)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-500 ${
+                        isExceeded 
+                          ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                          : progressPercentage > 80 
+                            ? 'bg-gradient-to-r from-orange-500 to-red-500'
+                            : 'bg-gradient-to-r from-green-500 to-orange-500'
+                      }`}
+                      style={{ width: `${Math.min(100, progressPercentage)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {/* Action button */}
+                <button
+                  onClick={handleEndBreak}
+                  className={`px-12 py-4 rounded-2xl font-bold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg ${
+                    isExceeded
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
+                  }`}
+                >
+                  {isExceeded ? 'Срочно завершить перерыв!' : 'Закончить перерыв'}
+                </button>
+              </div>
             </div>
-            
-            <h2 className="text-4xl font-bold text-gray-800 mb-6">
-              Вы на перерыве
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div className="bg-gray-50 rounded-2xl p-6">
-                <p className="text-sm text-gray-600 mb-2">
-                  Общее время перерыва за день:
-                </p>
-                <div className={`text-4xl font-mono font-bold mb-2 ${isExceeded ? 'text-red-500' : 'text-orange-500'}`}>
+
+            {/* Side statistics */}
+            <div className="space-y-6">
+              {/* Daily break summary */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-orange-100 rounded-full p-2">
+                    <TrendingUp className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-800">Общее время за день</h3>
+                </div>
+                <div className={`text-3xl font-mono font-bold mb-2 ${isExceeded ? 'text-red-500' : 'text-orange-500'}`}>
                   {formatBreakDuration(totalBreakTime)}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Лимит: 01:00:00
-                </p>
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>Лимит: 01:00:00</span>
+                  {!isExceeded && (
+                    <span className="text-green-600 font-medium">
+                      Осталось: {formatCurrentBreakDuration(remainingTime)}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="bg-blue-50 rounded-2xl p-6">
-                <p className="text-sm text-gray-600 mb-2">
-                  Текущий перерыв:
-                </p>
-                <div className="text-4xl font-mono font-bold text-blue-600 mb-2">
-                  {formatCurrentBreakDuration(currentBreakDuration)}
+              {/* Break tips */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-blue-100 rounded-full p-2">
+                    <Target className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-800">Советы для перерыва</h3>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Начат в {breakStartTime ? format(convertToTashkentTime(breakStartTime), 'HH:mm', { locale: ru }) : '--:--'}
-                </p>
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Выпейте стакан воды</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Сделайте легкую разминку</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Отдохните глазам от экрана</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Проветрите помещение</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick stats */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-purple-100 rounded-full p-2">
+                    <Activity className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-800">Статистика</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Рабочие часы</span>
+                    <span className="text-sm font-medium">{WORK_START_HOUR}:00 - {WORK_END_HOUR}:00</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Статус</span>
+                    <span className="text-sm font-medium text-orange-600">На перерыве</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Сегодня</span>
+                    <span className="text-sm font-medium">{format(currentTime, 'dd.MM.yyyy')}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            {isExceeded && (
-              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
-                <div className="flex items-center justify-center gap-3 mb-3">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
-                  <h3 className="text-lg font-bold text-red-700">
-                    Превышен лимит перерыва!
-                  </h3>
+          </div>
+
+          {/* Warning message for exceeded time */}
+          {isExceeded && (
+            <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-200 rounded-2xl p-6 mb-8 shadow-lg">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="bg-red-500 rounded-full p-2 animate-pulse">
+                  <AlertTriangle className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-red-600 mb-2">
+                <h3 className="text-xl font-bold text-red-700">
+                  Превышен лимит перерыва!
+                </h3>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-red-600 font-medium">
                   Вы превысили максимально допустимое время перерыва в 1 час.
                 </p>
                 <p className="text-red-500 text-sm">
                   Администратор уведомлен. Рекомендуется немедленно завершить перерыв.
                 </p>
+                <div className="mt-4 p-3 bg-red-100 rounded-lg">
+                  <p className="text-red-700 text-sm font-medium">
+                    Превышение: {formatCurrentBreakDuration(totalBreakTime - MAX_BREAK_TIME)}
+                  </p>
+                </div>
               </div>
-            )}
-            
-            <button
-              onClick={handleEndBreak}
-              className={`px-12 py-4 rounded-2xl font-bold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg ${
-                isExceeded
-                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
-                  : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
-              }`}
-            >
-              Закончить перерыв
-            </button>
+            </div>
+          )}
+
+          {/* Footer info */}
+          <div className="text-center text-gray-500 text-sm">
+            <p>Система автоматически отслеживает время перерыва</p>
+            <p className="mt-1">Максимальное время перерыва в день: 1 час</p>
           </div>
         </div>
       </div>
