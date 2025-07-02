@@ -25,6 +25,7 @@ import {
   Sun,
   Moon,
   Sunrise,
+  Sunset,
   Shield,
   Award,
   BarChart3,
