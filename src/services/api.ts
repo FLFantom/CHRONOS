@@ -18,6 +18,15 @@ try {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Webhook URLs
+const WEBHOOK_LATENESS_URL = 'https://gelding-able-sailfish.ngrok-free.app/webhook/lateness-report';
+const WEBHOOK_BREAK_EXCEEDED_URL = 'https://gelding-able-sailfish.ngrok-free.app/webhook/notify-break-exceeded';
+
+// Working hours configuration
+const WORK_START_HOUR = 9; // 9:00
+const WORK_END_HOUR = 18; // 18:00
+const MAX_BREAK_TIME = 3600; // 1 hour in seconds
+
 // Test Supabase connection
 const testConnection = async () => {
   try {
@@ -61,6 +70,53 @@ const handleSupabaseError = (error: any, operation: string) => {
   }
   
   throw new Error(error.message || `Ошибка при выполнении операции: ${operation}`);
+};
+
+// Send webhook notification
+const sendWebhook = async (url: string, data: any) => {
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+  } catch (error) {
+    console.error('Webhook error:', error);
+  }
+};
+
+// Check if user is late for work
+const checkLateness = (startTime: Date, userName: string) => {
+  const workStartTime = new Date(startTime);
+  workStartTime.setHours(WORK_START_HOUR, 0, 0, 0);
+  
+  if (startTime > workStartTime) {
+    // User is late, send webhook
+    sendWebhook(WEBHOOK_LATENESS_URL, {
+      userName,
+      startTime: startTime.toISOString(),
+    });
+  }
+};
+
+// Check if break time is exceeded
+const checkBreakExceeded = (breakStartTime: Date, userName: string, totalBreakTime: number) => {
+  if (totalBreakTime > MAX_BREAK_TIME) {
+    // Break time exceeded, send webhook
+    sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, {
+      userName,
+      startTime: breakStartTime.toISOString(),
+    });
+  }
+};
+
+// Check if current time is within working hours
+const isWithinWorkingHours = () => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  return currentHour >= WORK_START_HOUR && currentHour < WORK_END_HOUR;
 };
 
 export const authAPI = {
@@ -390,38 +446,60 @@ export const usersAPI = {
 export const timeLogsAPI = {
   async logAction(action: string, userId: number): Promise<void> {
     try {
+      const now = new Date();
+      
+      // Get user data for webhook notifications
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('name, daily_break_time, break_start_time')
+        .eq('id', userId)
+        .single();
+
+      if (userError) {
+        handleSupabaseError(userError, 'log action - get user');
+      }
+
       // Insert log entry
       const { error: logError } = await supabase
         .from('time_logs')
         .insert({
           user_id: userId,
           action,
-          timestamp: new Date().toISOString(),
+          timestamp: now.toISOString(),
         });
 
       if (logError) {
         handleSupabaseError(logError, 'log action - insert');
       }
 
-      // Update user status - only update fields that exist in your schema
-      const now = new Date().toISOString();
-      let updateData: any = { updated_at: now };
+      // Update user status and handle webhook notifications
+      let updateData: any = { updated_at: now.toISOString() };
 
       switch (action) {
         case 'start_work':
           updateData.status = 'working';
+          updateData.work_start_time = now.toISOString();
+          
+          // Check for lateness
+          if (user) {
+            checkLateness(now, user.name);
+          }
           break;
+          
         case 'start_break':
           updateData.status = 'on_break';
-          updateData.break_start_time = now;
+          updateData.break_start_time = now.toISOString();
           break;
+          
         case 'end_break':
           updateData.status = 'working';
           updateData.break_start_time = null;
           break;
+          
         case 'end_work':
           updateData.status = 'offline';
           updateData.break_start_time = null;
+          updateData.work_start_time = null;
           break;
       }
 
@@ -432,6 +510,38 @@ export const timeLogsAPI = {
 
       if (updateError) {
         handleSupabaseError(updateError, 'log action - update user');
+      }
+
+      // Check for break time exceeded (only when starting a break)
+      if (action === 'start_break' && user) {
+        // Calculate current total break time
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const { data: todayLogs } = await supabase
+          .from('time_logs')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('timestamp', today.toISOString())
+          .order('timestamp', { ascending: true });
+
+        let totalBreakTime = 0;
+        let currentBreakStart: Date | null = null;
+
+        todayLogs?.forEach((log) => {
+          if (log.action === 'start_break') {
+            currentBreakStart = new Date(log.timestamp);
+          } else if (log.action === 'end_break' && currentBreakStart) {
+            const breakEnd = new Date(log.timestamp);
+            totalBreakTime += Math.floor((breakEnd.getTime() - currentBreakStart.getTime()) / 1000);
+            currentBreakStart = null;
+          }
+        });
+
+        // Set up monitoring for break time exceeded
+        setTimeout(() => {
+          checkBreakExceeded(now, user.name, totalBreakTime + MAX_BREAK_TIME);
+        }, MAX_BREAK_TIME * 1000);
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -516,3 +626,6 @@ export const timeLogsAPI = {
     }
   },
 };
+
+// Export utility functions
+export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME };

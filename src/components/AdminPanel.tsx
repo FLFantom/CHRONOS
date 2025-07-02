@@ -13,10 +13,14 @@ import {
   LogOut,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertTriangle,
+  Clock,
+  Coffee,
+  Timer
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI, timeLogsAPI } from '../services/api';
+import { usersAPI, timeLogsAPI, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME } from '../services/api';
 import { User, TimeStats, TimeLog } from '../types';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -54,7 +58,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose, on
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">Редактировать сотрудника</h2>
           <button
@@ -171,7 +175,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ user, isOpen, o
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Сброс пароля для {user.name}
@@ -266,7 +270,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ user, isOpen, o
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-red-600">Удалить сотрудника</h2>
           <button
@@ -364,7 +368,7 @@ const LogsModal: React.FC<LogsModalProps> = ({ user, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-hidden">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] overflow-hidden shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Логи активности - {user.name}
@@ -503,7 +507,7 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-6xl max-h-[80vh] overflow-hidden">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-6xl max-h-[80vh] overflow-hidden shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Все логи активности
@@ -564,7 +568,7 @@ const AllLogsModal: React.FC<AllLogsModalProps> = ({ isOpen, onClose }) => {
               {logs.map((log) => (
                 <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="font-medium text-gray-800">
+                    <div className="font-medium text-gray-800 min-w-[150px]">
                       {log.users?.name || 'Неизвестный пользователь'}
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getActionColor(log.action)}`}>
@@ -734,12 +738,13 @@ const AdminPanel: React.FC = () => {
     const hours = Math.floor(totalBreakTime / 3600);
     const minutes = Math.floor((totalBreakTime % 3600) / 60);
     
-    if (totalBreakTime > 3600) {
-      const excessTime = totalBreakTime - 3600;
+    if (totalBreakTime > MAX_BREAK_TIME) {
+      const excessTime = totalBreakTime - MAX_BREAK_TIME;
       const excessHours = Math.floor(excessTime / 3600);
       const excessMinutes = Math.floor((excessTime % 3600) / 60);
       return (
-        <span className="text-red-600 font-semibold">
+        <span className="text-red-600 font-semibold flex items-center gap-1">
+          <AlertTriangle className="w-4 h-4" />
           -{excessHours}ч {excessMinutes}м (превышение!)
         </span>
       );
@@ -773,25 +778,29 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4">
       <div className="max-w-7xl mx-auto">
+        {/* Enhanced header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/')}
-              className="bg-gray-500 rounded-full w-12 h-12 flex items-center justify-center hover:bg-gray-600 transition-colors"
+              className="bg-gray-500 rounded-full w-12 h-12 flex items-center justify-center hover:bg-gray-600 transition-colors shadow-lg"
             >
               <ArrowLeft className="w-6 h-6 text-white" />
             </button>
-            <div className="bg-blue-500 rounded-full w-12 h-12 flex items-center justify-center">
-              <Settings className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-16 h-16 flex items-center justify-center shadow-lg">
+              <Settings className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-blue-600">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Админ-панель
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-lg">
                 Управление сотрудниками и учет рабочего времени
+              </p>
+              <p className="text-sm text-gray-500">
+                Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 | Лимит перерыва: 1 час
               </p>
             </div>
           </div>
@@ -799,21 +808,21 @@ const AdminPanel: React.FC = () => {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 shadow-lg"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Обновить
             </button>
             <button 
               onClick={() => setAllLogsModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-lg"
             >
               <FileText className="w-4 h-4" />
               Все логи
             </button>
             <button
               onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-lg"
             >
               <LogOut className="w-4 h-4" />
               Выйти
@@ -821,49 +830,67 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
 
+        {/* Enhanced stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-green-500 rounded-2xl p-6 text-white">
+          <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-2xl p-6 text-white shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">На работе</h3>
-              <Users className="w-8 h-8 opacity-80" />
+              <h3 className="font-semibold text-lg">На работе</h3>
+              <div className="bg-white bg-opacity-20 rounded-full p-2">
+                <Users className="w-6 h-6" />
+              </div>
             </div>
             <div className="text-3xl font-bold">{stats.workingUsers}</div>
+            <p className="text-green-100 text-sm">активных сотрудников</p>
           </div>
 
-          <div className="bg-orange-500 rounded-2xl p-6 text-white">
+          <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">На перерыве</h3>
-              <Users className="w-8 h-8 opacity-80" />
+              <h3 className="font-semibold text-lg">На перерыве</h3>
+              <div className="bg-white bg-opacity-20 rounded-full p-2">
+                <Coffee className="w-6 h-6" />
+              </div>
             </div>
             <div className="text-3xl font-bold">{stats.onBreakUsers}</div>
+            <p className="text-orange-100 text-sm">в перерыве</p>
           </div>
 
-          <div className="bg-gray-500 rounded-2xl p-6 text-white">
+          <div className="bg-gradient-to-br from-gray-400 to-gray-600 rounded-2xl p-6 text-white shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Не в сети</h3>
-              <Users className="w-8 h-8 opacity-80" />
+              <h3 className="font-semibold text-lg">Не в сети</h3>
+              <div className="bg-white bg-opacity-20 rounded-full p-2">
+                <Users className="w-6 h-6" />
+              </div>
             </div>
             <div className="text-3xl font-bold">{stats.offlineUsers}</div>
+            <p className="text-gray-100 text-sm">офлайн</p>
           </div>
 
-          <div className="bg-blue-500 rounded-2xl p-6 text-white">
+          <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Всего</h3>
-              <Users className="w-8 h-8 opacity-80" />
+              <h3 className="font-semibold text-lg">Всего</h3>
+              <div className="bg-white bg-opacity-20 rounded-full p-2">
+                <Users className="w-6 h-6" />
+              </div>
             </div>
             <div className="text-3xl font-bold">{stats.totalUsers}</div>
+            <p className="text-blue-100 text-sm">сотрудников</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
+        {/* Enhanced employees table */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-800">
-                Список сотрудников ({users.length})
-              </h2>
-              <p className="text-sm text-gray-500">
-                Автообновление каждые 30 секунд
-              </p>
+              <div className="flex items-center gap-3">
+                <Users className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-800">
+                  Список сотрудников ({users.length})
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Clock className="w-4 h-4" />
+                <span>Автообновление каждые 30 секунд</span>
+              </div>
             </div>
           </div>
 
@@ -905,7 +932,9 @@ const AdminPanel: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(employee.status)}`}>
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(employee.status)}`}>
+                        {employee.status === 'working' && <Timer className="w-3 h-3" />}
+                        {employee.status === 'on_break' && <Coffee className="w-3 h-3" />}
                         {getStatusText(employee.status)}
                       </span>
                     </td>
@@ -914,9 +943,12 @@ const AdminPanel: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`${
-                        (employee.daily_break_time || 0) > 3600 ? 'text-red-600 font-semibold' : 'text-gray-600'
+                        (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600 font-semibold' : 'text-gray-600'
                       }`}>
                         {formatDailyBreakTime(employee.daily_break_time)}
+                        {(employee.daily_break_time || 0) > MAX_BREAK_TIME && (
+                          <span className="ml-1 text-xs">(превышение)</span>
+                        )}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -973,7 +1005,7 @@ const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit User Modal */}
+      {/* Modals */}
       {selectedUser && (
         <EditUserModal
           user={selectedUser}
@@ -986,7 +1018,6 @@ const AdminPanel: React.FC = () => {
         />
       )}
 
-      {/* Reset Password Modal */}
       {selectedUser && (
         <ResetPasswordModal
           user={selectedUser}
@@ -999,7 +1030,6 @@ const AdminPanel: React.FC = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {selectedUser && (
         <DeleteConfirmModal
           user={selectedUser}
@@ -1012,7 +1042,6 @@ const AdminPanel: React.FC = () => {
         />
       )}
 
-      {/* User Logs Modal */}
       <LogsModal
         user={selectedUser}
         isOpen={logsModalOpen}
@@ -1022,7 +1051,6 @@ const AdminPanel: React.FC = () => {
         }}
       />
 
-      {/* All Logs Modal */}
       <AllLogsModal
         isOpen={allLogsModalOpen}
         onClose={() => setAllLogsModalOpen(false)}

@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, Square, LogOut, KeyRound, Wifi, WifiOff, Settings, Eye, EyeOff, X } from 'lucide-react';
+import { 
+  Clock, 
+  Play, 
+  Pause, 
+  Square, 
+  LogOut, 
+  KeyRound, 
+  Wifi, 
+  WifiOff, 
+  Settings, 
+  Eye, 
+  EyeOff, 
+  X,
+  AlertTriangle,
+  Coffee,
+  Timer
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { timeLogsAPI, usersAPI } from '../services/api';
+import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME } from '../services/api';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -55,7 +71,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Смена пароля
@@ -208,7 +224,6 @@ const UserDashboard: React.FC = () => {
   };
 
   const getTotalBreakTime = () => {
-    // daily_break_time уже включает текущий перерыв из API
     return user?.daily_break_time || 0;
   };
 
@@ -218,9 +233,8 @@ const UserDashboard: React.FC = () => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
     
-    // If total break time exceeds 1 hour, show negative time
-    if (totalSeconds > 3600) {
-      const excessSeconds = totalSeconds - 3600;
+    if (totalSeconds > MAX_BREAK_TIME) {
+      const excessSeconds = totalSeconds - MAX_BREAK_TIME;
       const excessHours = Math.floor(excessSeconds / 3600);
       const excessMinutes = Math.floor((excessSeconds % 3600) / 60);
       const excessSecs = excessSeconds % 60;
@@ -230,7 +244,6 @@ const UserDashboard: React.FC = () => {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  // Функция для форматирования только текущего перерыва
   const formatCurrentBreakDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -238,6 +251,9 @@ const UserDashboard: React.FC = () => {
     
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
+
+  const isWorkingHours = isWithinWorkingHours();
+  const currentHour = currentTime.getHours();
 
   const handleStartWork = async () => {
     if (!user) return;
@@ -319,17 +335,31 @@ const UserDashboard: React.FC = () => {
 
   if (!user) return null;
 
+  // Break screen with enhanced design
   if (user.status === 'on_break') {
     const totalBreakTime = getTotalBreakTime();
-    const isExceeded = totalBreakTime > 3600;
+    const isExceeded = totalBreakTime > MAX_BREAK_TIME;
+    const remainingTime = MAX_BREAK_TIME - totalBreakTime;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-50 to-red-50 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-red-50 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-800">
-              Перерыв в процессе
-            </h1>
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full w-12 h-12 flex items-center justify-center ${
+                isExceeded ? 'bg-red-500' : 'bg-orange-500'
+              }`}>
+                <Coffee className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">
+                  Перерыв в процессе
+                </h1>
+                <p className="text-gray-600">
+                  {isExceeded ? 'Время превышено!' : `Осталось: ${formatCurrentBreakDuration(remainingTime)}`}
+                </p>
+              </div>
+            </div>
             <div className="flex gap-4">
               {user.role === 'admin' && !impersonating && (
                 <button
@@ -358,51 +388,68 @@ const UserDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className={`rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6 ${
+          <div className="bg-white rounded-3xl shadow-2xl p-8 text-center relative overflow-hidden">
+            {/* Background decoration */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-400 to-red-500"></div>
+            
+            <div className={`rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-8 ${
               isExceeded 
-                ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                : 'bg-gradient-to-r from-orange-400 to-red-500'
+                ? 'bg-gradient-to-br from-red-500 to-red-600 animate-pulse' 
+                : 'bg-gradient-to-br from-orange-400 to-red-500'
             }`}>
-              <Pause className="w-12 h-12 text-white" />
+              <Timer className="w-16 h-16 text-white" />
             </div>
             
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">
               Вы на перерыве
             </h2>
             
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                Общее время перерыва за день:
-              </p>
-              <div className={`text-6xl font-mono mb-4 ${isExceeded ? 'text-red-500' : 'text-orange-500'}`}>
-                {formatBreakDuration(totalBreakTime)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <p className="text-sm text-gray-600 mb-2">
+                  Общее время перерыва за день:
+                </p>
+                <div className={`text-4xl font-mono font-bold mb-2 ${isExceeded ? 'text-red-500' : 'text-orange-500'}`}>
+                  {formatBreakDuration(totalBreakTime)}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Лимит: 01:00:00
+                </p>
               </div>
-            </div>
 
-            <div className="mb-6">
-              <p className="text-sm text-gray-600 mb-2">
-                Текущий перерыв:
-              </p>
-              <div className="text-2xl font-mono text-gray-700">
-                {formatCurrentBreakDuration(currentBreakDuration)}
+              <div className="bg-blue-50 rounded-2xl p-6">
+                <p className="text-sm text-gray-600 mb-2">
+                  Текущий перерыв:
+                </p>
+                <div className="text-4xl font-mono font-bold text-blue-600 mb-2">
+                  {formatCurrentBreakDuration(currentBreakDuration)}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Начат в {breakStartTime ? format(breakStartTime, 'HH:mm', { locale: ru }) : '--:--'}
+                </p>
               </div>
             </div>
             
             {isExceeded && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p className="text-red-700 font-medium">
-                  ⚠️ Превышен лимит перерыва в 1 час! Администратор уведомлен.
+              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                  <h3 className="text-lg font-bold text-red-700">
+                    Превышен лимит перерыва!
+                  </h3>
+                </div>
+                <p className="text-red-600 mb-2">
+                  Вы превысили максимально допустимое время перерыва в 1 час.
                 </p>
-                <p className="text-red-600 text-sm mt-1">
-                  Рекомендуется немедленно завершить перерыв.
+                <p className="text-red-500 text-sm">
+                  Администратор уведомлен. Рекомендуется немедленно завершить перерыв.
                 </p>
               </div>
             )}
             
             <button
               onClick={handleEndBreak}
-              className={`px-8 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 ${
+              className={`px-12 py-4 rounded-2xl font-bold text-lg transition-all duration-200 transform hover:scale-105 shadow-lg ${
                 isExceeded
                   ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
                   : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
@@ -416,17 +463,26 @@ const UserDashboard: React.FC = () => {
     );
   }
 
+  // Main dashboard with enhanced design
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-blue-600 mb-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
               {getGreeting()}, {user.name}!
             </h1>
-            <p className="text-gray-600 capitalize">
+            <p className="text-gray-600 text-lg capitalize">
               {formatDate(currentTime)}
             </p>
+            {!isWorkingHours && (
+              <div className="flex items-center gap-2 mt-2 text-amber-600">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-sm">
+                  Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex gap-4">
             {user.role === 'admin' && !impersonating && (
@@ -463,110 +519,132 @@ const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-2xl shadow-xl p-8 mb-8 text-white text-center">
-          <Clock className="w-16 h-16 mx-auto mb-4 opacity-90" />
-          <div className="text-6xl font-mono font-bold mb-2">
+        {/* Enhanced time display */}
+        <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-3xl shadow-2xl p-8 mb-8 text-white text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
+          
+          <Clock className="w-20 h-20 mx-auto mb-6 opacity-90" />
+          <div className="text-7xl font-mono font-bold mb-4 tracking-wider">
             {formatTime(currentTime)}
           </div>
-          <p className="text-blue-100 text-lg">
+          <p className="text-blue-100 text-xl">
             Текущее время
           </p>
+          
+          {!isWorkingHours && (
+            <div className="mt-4 bg-amber-500 bg-opacity-20 rounded-lg p-3">
+              <p className="text-amber-100 text-sm">
+                {currentHour < WORK_START_HOUR ? 'Рабочий день еще не начался' : 'Рабочий день завершен'}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Break time summary */}
+        {/* Break time summary with enhanced design */}
         {user.daily_break_time && user.daily_break_time > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 text-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Время перерыва за сегодня
-            </h3>
-            <div className={`text-3xl font-mono ${
-              user.daily_break_time > 3600 ? 'text-red-500' : 'text-orange-500'
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 text-center border-l-4 border-orange-400">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Coffee className="w-6 h-6 text-orange-500" />
+              <h3 className="text-xl font-bold text-gray-800">
+                Время перерыва за сегодня
+              </h3>
+            </div>
+            <div className={`text-4xl font-mono font-bold mb-2 ${
+              user.daily_break_time > MAX_BREAK_TIME ? 'text-red-500' : 'text-orange-500'
             }`}>
               {String(Math.floor(user.daily_break_time / 3600)).padStart(2, '0')}:
               {String(Math.floor((user.daily_break_time % 3600) / 60)).padStart(2, '0')}:
               {String(user.daily_break_time % 60).padStart(2, '0')}
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              Лимит: 01:00:00 в день
-            </p>
+            <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
+              <span>Лимит: 01:00:00 в день</span>
+              {user.daily_break_time > MAX_BREAK_TIME && (
+                <span className="text-red-500 font-medium">
+                  Превышение: {formatCurrentBreakDuration(user.daily_break_time - MAX_BREAK_TIME)}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
+        {/* Enhanced action buttons */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Play className="w-8 h-8 text-green-600" />
+          <div className="bg-white rounded-3xl shadow-xl p-8 text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+              <Play className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">
               Начать работу
             </h3>
-            <p className="text-gray-600 mb-6">
-              Зафиксировать начало рабочего дня
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              Зафиксировать начало рабочего дня и начать отслеживание времени
             </p>
             <button
               onClick={handleStartWork}
               disabled={user.status === 'working'}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg"
             >
-              Начать работу
+              {user.status === 'working' ? 'Уже работаете' : 'Начать работу'}
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="bg-orange-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Pause className="w-8 h-8 text-orange-600" />
+          <div className="bg-white rounded-3xl shadow-xl p-8 text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+              <Pause className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">
               Перерыв
             </h3>
-            <p className="text-gray-600 mb-6">
-              Зафиксировать начало перерыва
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              Зафиксировать начало перерыва. Максимум 1 час в день
             </p>
             <button
               onClick={handleStartBreak}
               disabled={user.status !== 'working'}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg"
             >
-              Начать перерыв
+              {user.status === 'working' ? 'Начать перерыв' : 'Недоступно'}
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow">
-            <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Square className="w-8 h-8 text-red-600" />
+          <div className="bg-white rounded-3xl shadow-xl p-8 text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+              <Square className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">
               Завершить день
             </h3>
-            <p className="text-gray-600 mb-6">
-              Зафиксировать окончание рабочего дня
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              Зафиксировать окончание рабочего дня и остановить отслеживание
             </p>
             <button
               onClick={handleEndWork}
               disabled={user.status === 'offline'}
-              className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg"
             >
-              Завершить день
+              {user.status === 'offline' ? 'День завершен' : 'Завершить день'}
             </button>
           </div>
         </div>
 
+        {/* Enhanced status display */}
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
-          <div className="flex items-center justify-center gap-2 text-gray-600">
+          <div className="flex items-center justify-center gap-3 text-lg">
             {user.status === 'offline' ? (
               <>
-                <WifiOff className="w-5 h-5" />
-                <span>Статус: Не в сети</span>
+                <WifiOff className="w-6 h-6 text-gray-500" />
+                <span className="text-gray-600 font-medium">Статус: Не в сети</span>
               </>
             ) : user.status === 'working' ? (
               <>
-                <Wifi className="w-5 h-5 text-green-500" />
-                <span>Статус: На работе</span>
+                <Wifi className="w-6 h-6 text-green-500" />
+                <span className="text-green-600 font-medium">Статус: На работе</span>
               </>
             ) : (
               <>
-                <Pause className="w-5 h-5 text-orange-500" />
-                <span>Статус: На перерыве</span>
+                <Coffee className="w-6 h-6 text-orange-500" />
+                <span className="text-orange-600 font-medium">Статус: На перерыве</span>
               </>
             )}
           </div>
