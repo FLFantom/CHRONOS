@@ -69,6 +69,12 @@ const handleSupabaseError = (error: any, operation: string) => {
     throw new Error(`Таблица базы данных не найдена. Убедитесь, что миграции выполнены.`);
   }
   
+  // Handle column not found errors gracefully
+  if (error.message?.includes('Could not find') && error.message?.includes('column')) {
+    console.warn(`Column not found: ${error.message}. Continuing without this field.`);
+    return; // Don't throw, just log and continue
+  }
+  
   throw new Error(error.message || `Ошибка при выполнении операции: ${operation}`);
 };
 
@@ -117,6 +123,20 @@ const isWithinWorkingHours = () => {
   const now = new Date();
   const currentHour = now.getHours();
   return currentHour >= WORK_START_HOUR && currentHour < WORK_END_HOUR;
+};
+
+// Check if a column exists in the users table
+const checkColumnExists = async (columnName: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(columnName)
+      .limit(1);
+    
+    return !error;
+  } catch (error) {
+    return false;
+  }
 };
 
 export const authAPI = {
@@ -472,13 +492,19 @@ export const timeLogsAPI = {
         handleSupabaseError(logError, 'log action - insert');
       }
 
+      // Check if work_start_time column exists before using it
+      const workStartTimeExists = await checkColumnExists('work_start_time');
+
       // Update user status and handle webhook notifications
       let updateData: any = { updated_at: now.toISOString() };
 
       switch (action) {
         case 'start_work':
           updateData.status = 'working';
-          updateData.work_start_time = now.toISOString();
+          // Only set work_start_time if the column exists
+          if (workStartTimeExists) {
+            updateData.work_start_time = now.toISOString();
+          }
           
           // Check for lateness
           if (user) {
@@ -499,7 +525,10 @@ export const timeLogsAPI = {
         case 'end_work':
           updateData.status = 'offline';
           updateData.break_start_time = null;
-          updateData.work_start_time = null;
+          // Only set work_start_time if the column exists
+          if (workStartTimeExists) {
+            updateData.work_start_time = null;
+          }
           break;
       }
 
@@ -509,7 +538,22 @@ export const timeLogsAPI = {
         .eq('id', userId);
 
       if (updateError) {
-        handleSupabaseError(updateError, 'log action - update user');
+        // Handle column not found errors gracefully
+        if (updateError.message?.includes('Could not find') && updateError.message?.includes('work_start_time')) {
+          console.warn('work_start_time column not found, continuing without it');
+          // Retry update without work_start_time
+          const { work_start_time, ...updateDataWithoutWorkStartTime } = updateData;
+          const { error: retryError } = await supabase
+            .from('users')
+            .update(updateDataWithoutWorkStartTime)
+            .eq('id', userId);
+          
+          if (retryError) {
+            handleSupabaseError(retryError, 'log action - retry update user');
+          }
+        } else {
+          handleSupabaseError(updateError, 'log action - update user');
+        }
       }
 
       // Check for break time exceeded (only when starting a break)
