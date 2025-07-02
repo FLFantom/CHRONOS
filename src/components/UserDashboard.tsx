@@ -246,17 +246,11 @@ const UserDashboard: React.FC = () => {
   };
 
   const formatCurrentBreakDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     
-    // Если часы равны 0, показываем только минуты:секунды
-    if (hours === 0) {
-      return `${minutes}:${String(secs).padStart(2, '0')}`;
-    }
-    
-    // Если есть часы, показываем полный формат
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    // Показываем только минуты:секунды для текущего перерыва
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
   const isWorkingHours = isWithinWorkingHours();
