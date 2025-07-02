@@ -1037,9 +1037,9 @@ const AdminPanel: React.FC = () => {
             )}
           </div>
 
-          {/* ИСПРАВЛЕНО: Увеличена высота таблицы */}
-          <div className="overflow-x-auto" style={{ maxHeight: '70vh' }}>
-            <div className="overflow-y-auto" style={{ maxHeight: '70vh' }}>
+          {/* ИСПРАВЛЕНО: Увеличена высота таблицы до 80vh */}
+          <div className="overflow-x-auto" style={{ height: '80vh' }}>
+            <div className="overflow-y-auto h-full">
               <table className="w-full">
                 <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
                   <tr>

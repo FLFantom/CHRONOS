@@ -74,8 +74,9 @@ const MobileRestriction: React.FC = () => {
     return null;
   }
 
+  // ИСПРАВЛЕНО: Полная блокировка интерфейса на мобильных устройствах
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-red-500 via-pink-500 to-purple-600 flex items-center justify-center p-4 z-50 relative overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-red-500 via-pink-500 to-purple-600 flex items-center justify-center p-4 z-[9999] relative overflow-hidden">
       {/* Enhanced animated background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-10 left-10 w-40 h-40 bg-white rounded-full opacity-10 animate-pulse"></div>
