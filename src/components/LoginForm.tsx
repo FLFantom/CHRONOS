@@ -111,11 +111,6 @@ const LoginForm: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Демо аккаунты:</p>
-          <p>Admin: admin@example.com / admin123</p>
-          <p>User: hvlad@example.com / user123</p>
-        </div>
       </div>
     </div>
   );
