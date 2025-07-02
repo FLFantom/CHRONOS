@@ -28,20 +28,20 @@ const WORK_END_HOUR = 18; // 18:00
 const MAX_BREAK_TIME = 3600; // 1 hour in seconds
 
 // Tashkent timezone offset (UTC+5) - КРИТИЧЕСКИ ВАЖНО: НЕ ИЗМЕНЯТЬ!
-const TASHKENT_OFFSET = 5 * 60 * 60 * 1000; // 5 hours in milliseconds
+const TASHKENT_OFFSET_HOURS = 5; // UTC+5
 
-// Get current time in Tashkent timezone - ИСПРАВЛЕНО: работаем с UTC временем
+// Get current time in Tashkent timezone - ИСПРАВЛЕНО: правильный расчет
 const getTashkentTime = () => {
-  const utcNow = new Date();
-  // Получаем UTC время и добавляем смещение Ташкента (+5 часов)
-  return new Date(utcNow.getTime() + TASHKENT_OFFSET);
+  const now = new Date();
+  // Создаем новую дату с учетом смещения UTC+5
+  const tashkentTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Tashkent"}));
+  return tashkentTime;
 };
 
 // Format date for Tashkent timezone in webhook format - ФОРМАТ ДЛЯ WEBHOOK
 const formatTashkentTime = (date: Date) => {
-  // Если дата уже в Ташкентском времени, используем её как есть
-  // Если это UTC дата, конвертируем в Ташкентское время
-  const tashkentTime = date.getTimezoneOffset ? convertToTashkentTime(date) : date;
+  // Конвертируем в Ташкентское время если это UTC дата
+  const tashkentTime = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Tashkent"}));
   
   const day = String(tashkentTime.getDate()).padStart(2, '0');
   const month = String(tashkentTime.getMonth() + 1).padStart(2, '0');
@@ -56,8 +56,8 @@ const formatTashkentTime = (date: Date) => {
 // Convert UTC time to Tashkent time - ИСПРАВЛЕНО: правильная конвертация
 const convertToTashkentTime = (utcDate: Date | string) => {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  // Добавляем смещение UTC+5 к UTC времени
-  return new Date(date.getTime() + TASHKENT_OFFSET);
+  // Используем правильную конвертацию в Ташкентское время
+  return new Date(date.toLocaleString("en-US", {timeZone: "Asia/Tashkent"}));
 };
 
 // Test Supabase connection
@@ -176,7 +176,7 @@ const monitorBreakTime = async (userId: number, userName: string, breakStartTime
 // Check if current time is within working hours (Tashkent time) - ИСПРАВЛЕНО
 const isWithinWorkingHours = () => {
   const tashkentTime = getTashkentTime();
-  const currentHour = tashkentTime.getHours(); // Используем getHours() вместо getUTCHours()
+  const currentHour = tashkentTime.getHours(); // Используем getHours() для Ташкентского времени
   return currentHour >= WORK_START_HOUR && currentHour < WORK_END_HOUR;
 };
 
@@ -271,7 +271,7 @@ export const usersAPI = {
           today.setHours(0, 0, 0, 0);
           
           // Convert back to UTC for database query
-          const todayUTC = new Date(today.getTime() - TASHKENT_OFFSET);
+          const todayUTC = new Date(today.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
           
           const { data: todayLogs, error: logsError } = await supabase
             .from('time_logs')
@@ -341,7 +341,7 @@ export const usersAPI = {
       today.setHours(0, 0, 0, 0);
       
       // Convert back to UTC for database query
-      const todayUTC = new Date(today.getTime() - TASHKENT_OFFSET);
+      const todayUTC = new Date(today.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
       
       const { data: todayLogs, error: logsError } = await supabase
         .from('time_logs')
@@ -646,12 +646,12 @@ export const timeLogsAPI = {
         const startOfDay = new Date(tashkentNow);
         startOfDay.setHours(0, 0, 0, 0);
         // Convert back to UTC for database query
-        const startOfDayUTC = new Date(startOfDay.getTime() - TASHKENT_OFFSET);
+        const startOfDayUTC = new Date(startOfDay.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
         query = query.gte('timestamp', startOfDayUTC.toISOString());
       } else if (period === 'month') {
         const startOfMonth = new Date(tashkentNow.getFullYear(), tashkentNow.getMonth(), 1);
         // Convert back to UTC for database query
-        const startOfMonthUTC = new Date(startOfMonth.getTime() - TASHKENT_OFFSET);
+        const startOfMonthUTC = new Date(startOfMonth.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
         query = query.gte('timestamp', startOfMonthUTC.toISOString());
       }
 
@@ -690,12 +690,12 @@ export const timeLogsAPI = {
         const startOfDay = new Date(tashkentNow);
         startOfDay.setHours(0, 0, 0, 0);
         // Convert back to UTC for database query
-        const startOfDayUTC = new Date(startOfDay.getTime() - TASHKENT_OFFSET);
+        const startOfDayUTC = new Date(startOfDay.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
         query = query.gte('timestamp', startOfDayUTC.toISOString());
       } else if (period === 'month') {
         const startOfMonth = new Date(tashkentNow.getFullYear(), tashkentNow.getMonth(), 1);
         // Convert back to UTC for database query
-        const startOfMonthUTC = new Date(startOfMonth.getTime() - TASHKENT_OFFSET);
+        const startOfMonthUTC = new Date(startOfMonth.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
         query = query.gte('timestamp', startOfMonthUTC.toISOString());
       }
 
