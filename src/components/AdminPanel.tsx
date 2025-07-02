@@ -29,7 +29,7 @@ import {
   Save,
   KeyRound,
   Mail,
-  User,
+  User as UserIcon,
   Sparkles,
   Star,
   Heart,
@@ -112,7 +112,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onClose, on
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-500" />
+              <UserIcon className="w-4 h-4 text-blue-500" />
               Имя пользователя
             </label>
             <input
@@ -633,7 +633,7 @@ const AdminPanel: React.FC = () => {
                             </>
                           ) : (
                             <>
-                              <User className="w-4 h-4" />
+                              <UserIcon className="w-4 h-4" />
                               Пользователь
                             </>
                           )}
