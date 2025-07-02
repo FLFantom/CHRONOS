@@ -155,77 +155,233 @@ const MobileRestriction: React.FC = () => {
   // КРИТИЧЕСКИ ВАЖНО: Если обнаружено мобильное устройство - АБСОЛЮТНАЯ БЛОКИРОВКА
   if (isMobile) {
     return (
-      <>
-        {/* ПОЛНАЯ БЛОКИРОВКА: Перекрываем весь экран с максимальным приоритетом */}
+      <div 
+        style={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 2147483647,
+          margin: 0,
+          padding: 0,
+          background: 'linear-gradient(135deg, #ef4444 0%, #ec4899 50%, #8b5cf6 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Дополнительный слой блокировки */}
         <div 
-          className="fixed inset-0 bg-gradient-to-br from-red-500 via-pink-500 to-purple-600 flex items-center justify-center overflow-hidden"
-          style={{ 
-            zIndex: 2147483647, // Максимально возможный z-index
-            position: 'fixed',
+          style={{
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            width: '100vw',
-            height: '100vh',
-            margin: 0,
-            padding: 0
+            background: 'rgba(0, 0, 0, 0.3)',
+            pointerEvents: 'none'
+          }}
+        ></div>
+        
+        {/* Основной контент блокировки */}
+        <div 
+          style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            padding: '32px',
+            maxWidth: '320px',
+            width: 'calc(100% - 32px)',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            position: 'relative',
+            zIndex: 10,
+            margin: '16px'
           }}
         >
-          {/* Дополнительный слой блокировки */}
-          <div className="absolute inset-0 bg-black opacity-30 pointer-events-none"></div>
+          {/* Иконка */}
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #8b5cf6 100%)',
+              borderRadius: '16px',
+              width: '64px',
+              height: '64px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px auto',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)'
+            }}
+          >
+            <Smartphone style={{ width: '32px', height: '32px', color: 'white' }} />
+          </div>
           
-          {/* Основной контент блокировки - УПРОЩЕННЫЙ */}
-          <div className="bg-white/95 backdrop-blur-2xl rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-white/30 relative z-10 mx-4">
-            {/* Упрощенный заголовок */}
-            <div className="bg-gradient-to-r from-red-500 to-purple-600 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <Smartphone className="w-8 h-8 text-white" />
-            </div>
-            
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-purple-600 bg-clip-text text-transparent mb-4">
-              🚫 ДОСТУП ЗАБЛОКИРОВАН
-            </h1>
-            
-            <p className="text-gray-700 mb-6 text-base font-medium">
-              Система недоступна с мобильных устройств
-            </p>
-            
-            {/* Упрощенное предупреждение */}
-            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl p-4 mb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <AlertTriangle className="w-5 h-5 text-red-500" />
-                <p className="text-red-700 font-bold">CHRONOS ЗАБЛОКИРОВАН</p>
-              </div>
-              <p className="text-red-600 text-sm">
-                Система учета времени доступна только на компьютерах
+          {/* Заголовок */}
+          <h1 
+            style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              background: 'linear-gradient(135deg, #dc2626 0%, #7c3aed 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              marginBottom: '16px',
+              lineHeight: '1.2'
+            }}
+          >
+            🚫 Доступ ограничен
+          </h1>
+          
+          {/* Описание */}
+          <p 
+            style={{
+              color: '#374151',
+              marginBottom: '24px',
+              fontSize: '16px',
+              fontWeight: '500',
+              lineHeight: '1.5'
+            }}
+          >
+            Вход с мобильных устройств запрещен
+          </p>
+          
+          {/* Предупреждение */}
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #fef2f2 0%, #fdf2f8 100%)',
+              border: '2px solid #fecaca',
+              borderRadius: '16px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}
+          >
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginBottom: '8px'
+              }}
+            >
+              <AlertTriangle style={{ width: '20px', height: '20px', color: '#dc2626' }} />
+              <p 
+                style={{
+                  color: '#b91c1c',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  margin: 0
+                }}
+              >
+                Система учета времени недоступна на мобильных устройствах
               </p>
             </div>
+            <p 
+              style={{
+                color: '#dc2626',
+                fontSize: '12px',
+                margin: 0,
+                lineHeight: '1.4'
+              }}
+            >
+              Пожалуйста, используйте компьютер или ноутбук для входа в систему
+            </p>
+          </div>
 
-            {/* Упрощенные требования */}
-            <div className="text-left bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Monitor className="w-5 h-5 text-blue-600" />
-                <p className="font-bold text-gray-800">Требования</p>
+          {/* Требования */}
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)',
+              borderRadius: '16px',
+              padding: '16px',
+              border: '1px solid #bfdbfe',
+              textAlign: 'left'
+            }}
+          >
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '12px'
+              }}
+            >
+              <Monitor style={{ width: '20px', height: '20px', color: '#2563eb' }} />
+              <p 
+                style={{
+                  fontWeight: 'bold',
+                  color: '#1f2937',
+                  fontSize: '14px',
+                  margin: 0
+                }}
+              >
+                Для работы с системой требуется:
+              </p>
+            </div>
+            <div style={{ fontSize: '12px', lineHeight: '1.5' }}>
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px'
+                }}
+              >
+                <div 
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    background: '#10b981',
+                    borderRadius: '50%'
+                  }}
+                ></div>
+                <span style={{ color: '#374151' }}>• Компьютер или ноутбук</span>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-700">💻 Компьютер или ноутбук</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-700">📏 Минимум 1200×800</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-red-700">🚫 НЕ мобильные устройства</span>
-                </div>
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px'
+                }}
+              >
+                <div 
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    background: '#3b82f6',
+                    borderRadius: '50%'
+                  }}
+                ></div>
+                <span style={{ color: '#374151' }}>• Браузер Chrome, Firefox или Safari</span>
+              </div>
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <div 
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    background: '#6366f1',
+                    borderRadius: '50%'
+                  }}
+                ></div>
+                <span style={{ color: '#374151' }}>• Стабильное интернет-соединение</span>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Дополнительная блокировка для предотвращения любого взаимодействия */}
+        {/* Стили для полной блокировки */}
         <style>{`
           body, html {
             overflow: hidden !important;
@@ -255,13 +411,8 @@ const MobileRestriction: React.FC = () => {
           meta[name=viewport] {
             content: "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" !important;
           }
-          
-          /* Полная блокировка всех элементов кроме блокирующего экрана */
-          body > div:not([style*="z-index: 2147483647"]) {
-            display: none !important;
-          }
         `}</style>
-      </>
+      </div>
     );
   }
 
