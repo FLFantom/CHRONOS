@@ -824,9 +824,8 @@ const AdminPanel: React.FC = () => {
       return '—';
     }
     
-    // ИСПРАВЛЕНО: правильный расчет времени перерыва
-    const breakStartTime = new Date(employee.break_start_time).getTime(); // Время из БД (UTC) в миллисекундах
-    const currentTime = Date.now(); // Текущее время в миллисекундах (всегда UTC)
+    const breakStartTime = new Date(employee.break_start_time).getTime();
+    const currentTime = Date.now();
     const currentBreakDuration = Math.floor((currentTime - breakStartTime) / 1000);
     const totalBreakTime = (employee.daily_break_time || 0) + currentBreakDuration;
     
@@ -987,7 +986,7 @@ const AdminPanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Enhanced employees table */}
+        {/* Enhanced employees table with increased height */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50">
           <div className="p-8 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
             <div className="flex items-center justify-between mb-6">
@@ -1038,134 +1037,137 @@ const AdminPanel: React.FC = () => {
             )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50/80 backdrop-blur-sm">
-                <tr>
-                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    Сотрудник
-                  </th>
-                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    Статус
-                  </th>
-                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    Текущий перерыв
-                  </th>
-                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    Перерыв за день
-                  </th>
-                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    Роль
-                  </th>
-                  <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredUsers.length === 0 ? (
+          {/* ИСПРАВЛЕНО: Увеличена высота таблицы */}
+          <div className="overflow-x-auto" style={{ maxHeight: '70vh' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: '70vh' }}>
+              <table className="w-full">
+                <thead className="bg-gray-50/80 backdrop-blur-sm sticky top-0 z-10">
                   <tr>
-                    <td colSpan={6} className="px-8 py-16 text-center">
-                      <div className="text-gray-500">
-                        {searchQuery ? (
-                          <div>
-                            <Search className="w-16 h-16 mx-auto mb-6 text-gray-300" />
-                            <p className="text-2xl font-bold mb-3">Сотрудники не найдены</p>
-                            <p className="text-lg">Попробуйте изменить поисковый запрос</p>
-                          </div>
-                        ) : (
-                          <div>
-                            <Users className="w-16 h-16 mx-auto mb-6 text-gray-300" />
-                            <p className="text-2xl font-bold">Нет сотрудников</p>
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      Сотрудник
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      Статус
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      Текущий перерыв
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      Перерыв за день
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      Роль
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                      Действия
+                    </th>
                   </tr>
-                ) : (
-                  filteredUsers.map((employee) => (
-                    <tr key={employee.id} className="hover:bg-gray-50/80 transition-all duration-200">
-                      <td className="px-8 py-6">
-                        <div>
-                          <div className="font-bold text-gray-800 text-lg">
-                            {employee.name}
-                          </div>
-                          <div className="text-gray-500 font-medium">
-                            {employee.email}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border ${getStatusColor(employee.status)}`}>
-                          {employee.status === 'working' && <Timer className="w-4 h-4" />}
-                          {employee.status === 'on_break' && <Coffee className="w-4 h-4" />}
-                          {getStatusText(employee.status)}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-gray-600 font-medium">
-                        {formatBreakTime(employee)}
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className={`font-bold ${
-                          (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-600'
-                        }`}>
-                          {formatDailyBreakTime(employee.daily_break_time)}
-                          {(employee.daily_break_time || 0) > MAX_BREAK_TIME && (
-                            <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg">(превышение)</span>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-8 py-16 text-center">
+                        <div className="text-gray-500">
+                          {searchQuery ? (
+                            <div>
+                              <Search className="w-16 h-16 mx-auto mb-6 text-gray-300" />
+                              <p className="text-2xl font-bold mb-3">Сотрудники не найдены</p>
+                              <p className="text-lg">Попробуйте изменить поисковый запрос</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <Users className="w-16 h-16 mx-auto mb-6 text-gray-300" />
+                              <p className="text-2xl font-bold">Нет сотрудников</p>
+                            </div>
                           )}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold border ${
-                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'
-                        }`}>
-                          {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleImpersonateUser(employee.id)}
-                            className="p-3 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
-                            title="Войти как пользователь"
-                          >
-                            <LoginIcon className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEditUser(employee)}
-                            className="p-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
-                            title="Редактировать"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleViewLogs(employee)}
-                            className="p-3 text-purple-600 hover:bg-purple-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
-                            title="Логи"
-                          >
-                            <Calendar className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleResetPassword(employee)}
-                            className="p-3 text-orange-600 hover:bg-orange-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
-                            title="Сбросить пароль"
-                          >
-                            <RotateCcw className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(employee)}
-                            className="p-3 text-red-600 hover:bg-red-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
-                            title="Удалить"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredUsers.map((employee) => (
+                      <tr key={employee.id} className="hover:bg-gray-50/80 transition-all duration-200">
+                        <td className="px-8 py-6">
+                          <div>
+                            <div className="font-bold text-gray-800 text-lg">
+                              {employee.name}
+                            </div>
+                            <div className="text-gray-500 font-medium">
+                              {employee.email}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border ${getStatusColor(employee.status)}`}>
+                            {employee.status === 'working' && <Timer className="w-4 h-4" />}
+                            {employee.status === 'on_break' && <Coffee className="w-4 h-4" />}
+                            {getStatusText(employee.status)}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-gray-600 font-medium">
+                          {formatBreakTime(employee)}
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className={`font-bold ${
+                            (employee.daily_break_time || 0) > MAX_BREAK_TIME ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {formatDailyBreakTime(employee.daily_break_time)}
+                            {(employee.daily_break_time || 0) > MAX_BREAK_TIME && (
+                              <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-lg">(превышение)</span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className={`inline-flex px-4 py-2 rounded-xl text-sm font-bold border ${
+                            employee.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'
+                          }`}>
+                            {employee.role === 'admin' ? 'Админ' : 'Пользователь'}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleImpersonateUser(employee.id)}
+                              className="p-3 text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
+                              title="Войти как пользователь"
+                            >
+                              <LoginIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleEditUser(employee)}
+                              className="p-3 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
+                              title="Редактировать"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleViewLogs(employee)}
+                              className="p-3 text-purple-600 hover:bg-purple-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
+                              title="Логи"
+                            >
+                              <Calendar className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleResetPassword(employee)}
+                              className="p-3 text-orange-600 hover:bg-orange-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
+                              title="Сбросить пароль"
+                            >
+                              <RotateCcw className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(employee)}
+                              className="p-3 text-red-600 hover:bg-red-100 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:scale-110"
+                              title="Удалить"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
