@@ -30,6 +30,9 @@ const MAX_BREAK_TIME = 3600; // 1 hour in seconds
 // Tashkent timezone offset (UTC+5) - КРИТИЧЕСКИ ВАЖНО: НЕ ИЗМЕНЯТЬ!
 const TASHKENT_OFFSET_HOURS = 5; // UTC+5
 
+// НОВОЕ: Хранилище пользователей, превысивших лимит перерыва
+const usersExceededBreakLimit = new Set<number>();
+
 // Get current time in Tashkent timezone - ИСПРАВЛЕНО: правильный расчет
 const getTashkentTime = () => {
   const now = new Date();
@@ -187,8 +190,8 @@ const checkLateness = (startTime: Date, userName: string) => {
   }
 };
 
-// КРИТИЧЕСКИ ИСПРАВЛЕНО: Проверка превышения перерыва
-const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
+// КРИТИЧЕСКИ ИСПРАВЛЕНО: Проверка превышения перерыва с блокировкой
+const checkBreakExceeded = (breakStartTime: Date, userName: string, userId: number) => {
   const webhookData = {
     userName,
     startTime: formatTashkentTime(breakStartTime),
@@ -196,6 +199,10 @@ const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
   
   console.log(`🚨 Break time exceeded for ${userName}! Sending break exceeded webhook...`, webhookData);
   sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, webhookData, 'notify-break-exceeded');
+  
+  // НОВОЕ: Добавляем пользователя в список превысивших лимит
+  usersExceededBreakLimit.add(userId);
+  console.log(`🚫 User ${userName} (${userId}) added to break limit exceeded list. Total users: ${usersExceededBreakLimit.size}`);
 };
 
 // КРИТИЧЕСКИ ИСПРАВЛЕНО: Система мониторинга перерывов
@@ -250,8 +257,8 @@ const monitorBreakTime = async (userId: number, userName: string, breakStartTime
           if (timeDiff < 10000) { // Разница менее 10 секунд - это тот же перерыв
             console.log(`🚨 ${userName} is still on the same break after 1 hour! Triggering webhook NOW...`);
             
-            // КРИТИЧЕСКИ ВАЖНО: Отправляем webhook немедленно
-            checkBreakExceeded(originalBreakStart, user.name);
+            // КРИТИЧЕСКИ ВАЖНО: Отправляем webhook немедленно с блокировкой
+            checkBreakExceeded(originalBreakStart, user.name, userId);
           } else {
             console.log(`ℹ️ ${userName} started a new break. Original monitoring cancelled.`);
           }
@@ -285,6 +292,94 @@ const cancelBreakMonitoring = (userId: number) => {
   }
 };
 
+// НОВОЕ: Проверка, может ли пользователь начать перерыв
+const canUserStartBreak = async (userId: number): Promise<{ canStart: boolean; reason?: string }> => {
+  // Проверяем, превысил ли пользователь лимит сегодня
+  if (usersExceededBreakLimit.has(userId)) {
+    console.log(`🚫 User ${userId} cannot start break - exceeded daily limit`);
+    return {
+      canStart: false,
+      reason: 'Вы превысили дневной лимит перерыва (1 час). Новые перерывы запрещены до завтра.'
+    };
+  }
+
+  // Проверяем общее время перерыва за сегодня
+  try {
+    const tashkentNow = getTashkentTime();
+    const today = new Date(tashkentNow);
+    today.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC for database query
+    const todayUTC = new Date(today.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
+    
+    const { data: todayLogs, error } = await supabase
+      .from('time_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('timestamp', todayUTC.toISOString())
+      .order('timestamp', { ascending: true });
+
+    if (error) {
+      console.error('Error checking daily break time:', error);
+      return { canStart: true }; // В случае ошибки разрешаем
+    }
+
+    let dailyBreakTime = 0;
+    let currentBreakStart: Date | null = null;
+
+    todayLogs?.forEach((log) => {
+      if (log.action === 'start_break') {
+        currentBreakStart = new Date(log.timestamp);
+      } else if (log.action === 'end_break' && currentBreakStart) {
+        const breakEnd = new Date(log.timestamp);
+        dailyBreakTime += Math.floor((breakEnd.getTime() - currentBreakStart.getTime()) / 1000);
+        currentBreakStart = null;
+      }
+    });
+
+    console.log(`📊 User ${userId} daily break time: ${dailyBreakTime}s / ${MAX_BREAK_TIME}s`);
+
+    if (dailyBreakTime >= MAX_BREAK_TIME) {
+      console.log(`🚫 User ${userId} cannot start break - already used ${dailyBreakTime}s today`);
+      usersExceededBreakLimit.add(userId); // Добавляем в список
+      return {
+        canStart: false,
+        reason: `Вы уже использовали ${Math.floor(dailyBreakTime / 60)} минут перерыва сегодня. Лимит: ${MAX_BREAK_TIME / 60} минут.`
+      };
+    }
+
+    return { canStart: true };
+  } catch (error) {
+    console.error('Error in canUserStartBreak:', error);
+    return { canStart: true }; // В случае ошибки разрешаем
+  }
+};
+
+// НОВОЕ: Сброс лимитов в начале нового дня
+const resetDailyBreakLimits = () => {
+  const previousSize = usersExceededBreakLimit.size;
+  usersExceededBreakLimit.clear();
+  console.log(`🔄 Daily break limits reset. Cleared ${previousSize} users from exceeded list.`);
+};
+
+// НОВОЕ: Инициализация сброса лимитов в полночь
+const initializeDailyReset = () => {
+  const now = getTashkentTime();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  
+  const msUntilMidnight = tomorrow.getTime() - now.getTime();
+  
+  console.log(`⏰ Setting up daily reset in ${Math.floor(msUntilMidnight / 1000 / 60)} minutes`);
+  
+  setTimeout(() => {
+    resetDailyBreakLimits();
+    // Устанавливаем повторяющийся сброс каждые 24 часа
+    setInterval(resetDailyBreakLimits, 24 * 60 * 60 * 1000);
+  }, msUntilMidnight);
+};
+
 // КРИТИЧЕСКИ ИСПРАВЛЕНО: Инициализация мониторинга для существующих перерывов
 const initializeBreakMonitoring = async () => {
   try {
@@ -314,7 +409,7 @@ const initializeBreakMonitoring = async () => {
         if (breakDuration >= MAX_BREAK_TIME) {
           // КРИТИЧЕСКИ ВАЖНО: Перерыв уже превысил лимит, отправляем уведомление немедленно
           console.log(`🚨 ${user.name} has already exceeded break limit by ${breakDuration - MAX_BREAK_TIME}s! Sending immediate webhook...`);
-          checkBreakExceeded(breakStartTime, user.name);
+          checkBreakExceeded(breakStartTime, user.name, user.id);
         } else {
           // Перерыв еще не превысил лимит, устанавливаем мониторинг на оставшееся время
           const remainingTime = MAX_BREAK_TIME - breakDuration;
@@ -336,7 +431,7 @@ const initializeBreakMonitoring = async () => {
                 
                 if (timeDiff < 10000) { // Тот же перерыв
                   console.log(`🚨 ${currentUser.name} exceeded break limit! Sending webhook...`);
-                  checkBreakExceeded(breakStartTime, currentUser.name);
+                  checkBreakExceeded(breakStartTime, currentUser.name, user.id);
                 }
               }
               
@@ -428,6 +523,7 @@ export const authAPI = {
       // КРИТИЧЕСКИ ВАЖНО: Инициализируем мониторинг перерывов при входе
       setTimeout(() => {
         initializeBreakMonitoring();
+        initializeDailyReset(); // НОВОЕ: Инициализируем сброс лимитов
       }, 500);
 
       return {
@@ -734,6 +830,14 @@ export const timeLogsAPI = {
       
       console.log(`📝 Logging action: ${action} for user ${userId} at ${formatTashkentTime(now)}`);
       
+      // НОВОЕ: Проверяем возможность начать перерыв
+      if (action === 'start_break') {
+        const breakCheck = await canUserStartBreak(userId);
+        if (!breakCheck.canStart) {
+          throw new Error(breakCheck.reason || 'Невозможно начать перерыв');
+        }
+      }
+      
       // Get user data for webhook notifications
       const { data: user, error: userError } = await supabase
         .from('users')
@@ -770,6 +874,12 @@ export const timeLogsAPI = {
           // Only set work_start_time if the column exists
           if (workStartTimeExists) {
             updateData.work_start_time = now.toISOString();
+          }
+          
+          // НОВОЕ: Убираем пользователя из списка превысивших лимит при начале работы
+          if (usersExceededBreakLimit.has(userId)) {
+            usersExceededBreakLimit.delete(userId);
+            console.log(`🔄 User ${userId} removed from break limit exceeded list (started work)`);
           }
           
           // Check for lateness using Tashkent time
@@ -932,4 +1042,13 @@ export const timeLogsAPI = {
 };
 
 // Export utility functions
-export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime, convertToTashkentTime };
+export { 
+  isWithinWorkingHours, 
+  WORK_START_HOUR, 
+  WORK_END_HOUR, 
+  MAX_BREAK_TIME, 
+  getTashkentTime, 
+  formatTashkentTime, 
+  convertToTashkentTime,
+  canUserStartBreak // НОВОЕ: Экспортируем функцию проверки
+};
