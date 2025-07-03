@@ -2,10 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import MobileRestriction from './components/MobileRestriction.tsx';
-import LoginForm from './components/LoginForm.tsx';
-import UserDashboard from './components/UserDashboard.tsx';
-import AdminPanel from './components/AdminPanel.tsx';
+import MobileRestriction from './components/MobileRestriction';
+import LoginForm from './components/LoginForm';
+import UserDashboard from './components/UserDashboard';
+import AdminPanel from './components/AdminPanel';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
