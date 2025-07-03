@@ -312,6 +312,7 @@ export const authAPI = {
         throw error;
       }
       handleSupabaseError(error, 'login');
+      throw new Error('Ошибка входа в систему');
     }
   },
 };
@@ -392,6 +393,7 @@ export const usersAPI = {
         throw error;
       }
       handleSupabaseError(error, 'getAll users');
+      return [];
     }
   },
 
@@ -405,6 +407,10 @@ export const usersAPI = {
 
       if (error) {
         handleSupabaseError(error, 'getById user');
+      }
+
+      if (!data) {
+        return null;
       }
 
       // Calculate daily break time using Tashkent time
@@ -480,6 +486,12 @@ export const usersAPI = {
         throw error;
       }
       handleSupabaseError(error, 'getStats');
+      return {
+        totalUsers: 0,
+        workingUsers: 0,
+        onBreakUsers: 0,
+        offlineUsers: 0,
+      };
     }
   },
 
@@ -507,6 +519,7 @@ export const usersAPI = {
         throw error;
       }
       handleSupabaseError(error, 'update user');
+      throw new Error('Ошибка обновления пользователя');
     }
   },
 
