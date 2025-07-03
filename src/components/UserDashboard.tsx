@@ -4,733 +4,1040 @@ import {
   Play, 
   Pause, 
   Square, 
-  Settings, 
   LogOut, 
-  Shield, 
-  User as UserIcon,
-  Calendar,
-  Activity,
+  KeyRound, 
+  Wifi, 
+  WifiOff, 
+  Settings, 
+  Eye, 
+  EyeOff, 
+  X,
+  AlertTriangle,
   Coffee,
-  CheckCircle,
-  AlertCircle,
   Timer,
+  TrendingUp,
+  Calendar,
+  Target,
+  Activity,
+  Zap,
+  CheckCircle,
+  Sparkles,
+  Sun,
+  Moon,
+  Sunrise,
+  Sunset,
+  Shield,
+  Award,
   BarChart3,
-  History,
-  Eye,
-  EyeOff,
-  Lock,
-  Save,
-  X
+  Flame,
+  Heart,
+  Star,
+  Waves,
+  Wind,
+  Snowflake
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { timeLogsAPI, usersAPI, getTashkentTime, formatTashkentTime, convertToTashkentTime, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME } from '../services/api';
-import { TimeLog, User } from '../types';
+import { timeLogsAPI, usersAPI, isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, convertToTashkentTime } from '../services/api';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useForm } from 'react-hook-form';
 
-interface PasswordChangeForm {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+interface ChangePasswordModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (currentPassword: string, newPassword: string) => void;
 }
+
+const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose, onSubmit }) => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('Новые пароли не совпадают');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Новый пароль должен содержать минимум 6 символов');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-gray-100 relative overflow-hidden transform transition-all duration-300 scale-100">
+        {/* Enhanced decorative gradient */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradient"></div>
+        
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl p-3 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              <KeyRound className="w-6 h-6 text-white relative z-10" />
+            </div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Смена пароля
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-all duration-200 p-2 hover:bg-gray-100 rounded-lg hover:scale-110"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-blue-500" />
+              Текущий пароль
+            </label>
+            <div className="relative group">
+              <input
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 group-hover:shadow-md"
+                placeholder="Введите текущий пароль"
+                required
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              Новый пароль
+            </label>
+            <div className="relative group">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 group-hover:shadow-md"
+                placeholder="Введите новый пароль"
+                required
+                minLength={6}
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              Минимум 6 символов
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              Подтвердите новый пароль
+            </label>
+            <div className="relative group">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white hover:border-gray-300 group-hover:shadow-md"
+                placeholder="Подтвердите пароль"
+                required
+                minLength={6}
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                disabled={isSubmitting}
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-gray-700 hover:border-gray-400 hover:scale-[1.02]"
+              disabled={isSubmitting}
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white rounded-xl hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Сохранение...
+                </div>
+              ) : (
+                'Сменить пароль'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 const UserDashboard: React.FC = () => {
   const { user, logout, impersonating, exitImpersonation, updateUserStatus } = useAuth();
+  const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(getTashkentTime());
-  const [breakDuration, setBreakDuration] = useState(0);
-  const [dailyBreakTime, setDailyBreakTime] = useState(0);
-  const [logs, setLogs] = useState<TimeLog[]>([]);
-  const [showLogs, setShowLogs] = useState(false);
-  const [logPeriod, setLogPeriod] = useState<'day' | 'month' | 'all'>('day');
-  const [loading, setLoading] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showPassword, setShowPassword] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
+  const [currentBreakDuration, setCurrentBreakDuration] = useState(0);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    watch,
-    setError,
-  } = useForm<PasswordChangeForm>();
-
-  const newPassword = watch('newPassword');
-
-  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(getTashkentTime());
+      const tashkentTime = getTashkentTime();
+      setCurrentTime(tashkentTime);
+      
+      // Calculate current break duration if user is on break
+      if (user?.status === 'on_break' && user.break_start_time) {
+        const breakStartTime = new Date(user.break_start_time).getTime();
+        const currentTime = Date.now();
+        const duration = Math.floor((currentTime - breakStartTime) / 1000);
+        setCurrentBreakDuration(Math.max(0, duration));
+      } else {
+        setCurrentBreakDuration(0);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [user]);
 
-  // Update break duration if user is on break
+  // Initialize break duration when component mounts or user changes
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
     if (user?.status === 'on_break' && user.break_start_time) {
-      interval = setInterval(() => {
-        const breakStart = convertToTashkentTime(user.break_start_time!);
-        const now = getTashkentTime();
-        const duration = Math.floor((now.getTime() - breakStart.getTime()) / 1000);
-        setBreakDuration(duration);
-      }, 1000);
+      const breakStartTime = new Date(user.break_start_time).getTime();
+      const currentTime = Date.now();
+      const duration = Math.floor((currentTime - breakStartTime) / 1000);
+      setCurrentBreakDuration(Math.max(0, duration));
     } else {
-      setBreakDuration(0);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [user?.status, user?.break_start_time]);
-
-  // Load daily break time
-  useEffect(() => {
-    if (user) {
-      loadDailyBreakTime();
+      setCurrentBreakDuration(0);
     }
   }, [user]);
 
-  const loadDailyBreakTime = async () => {
-    if (!user) return;
-    
-    try {
-      const updatedUser = await usersAPI.getById(user.id);
-      if (updatedUser) {
-        setDailyBreakTime(updatedUser.daily_break_time || 0);
-      }
-    } catch (error) {
-      console.error('Error loading daily break time:', error);
-    }
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 6) return { text: 'Доброй ночи', icon: Moon, color: 'from-indigo-500 via-purple-500 to-pink-500', bgColor: 'from-indigo-50 to-purple-50' };
+    if (hour < 12) return { text: 'Доброе утро', icon: Sunrise, color: 'from-orange-400 via-yellow-400 to-orange-500', bgColor: 'from-orange-50 to-yellow-50' };
+    if (hour < 17) return { text: 'Добрый день', icon: Sun, color: 'from-blue-400 via-cyan-400 to-blue-500', bgColor: 'from-blue-50 to-cyan-50' };
+    if (hour < 22) return { text: 'Добрый вечер', icon: Sunset, color: 'from-purple-400 via-pink-400 to-purple-500', bgColor: 'from-purple-50 to-pink-50' };
+    return { text: 'Доброй ночи', icon: Moon, color: 'from-indigo-500 via-purple-500 to-pink-500', bgColor: 'from-indigo-50 to-purple-50' };
   };
 
-  const loadLogs = async () => {
-    if (!user) return;
+  // УЛУЧШЕННАЯ функция для извлечения имени
+  const getFirstName = (fullName: string) => {
+    const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
     
-    setLoading(true);
+    if (nameParts.length === 0) return 'Пользователь';
+    
+    // Если только одно слово - возвращаем его
+    if (nameParts.length === 1) return nameParts[0];
+    
+    // Проверяем, является ли первое слово типичной фамилией (заканчивается на -ов, -ев, -ин, -ын, -ич, -енко и т.д.)
+    const firstWord = nameParts[0];
+    const lastWord = nameParts[nameParts.length - 1];
+    
+    // Типичные окончания фамилий
+    const surnameEndings = ['ов', 'ев', 'ин', 'ын', 'ич', 'енко', 'ко', 'ук', 'юк', 'ский', 'цкий', 'ной', 'ная'];
+    
+    // Проверяем, заканчивается ли первое слово на типичное окончание фамилии
+    const isFirstWordSurname = surnameEndings.some(ending => 
+      firstWord.toLowerCase().endsWith(ending.toLowerCase())
+    );
+    
+    // Если первое слово похоже на фамилию и есть второе слово, возвращаем второе
+    if (isFirstWordSurname && nameParts.length > 1) {
+      return nameParts[1];
+    }
+    
+    // В остальных случаях возвращаем первое слово
+    return firstWord;
+  };
+
+  const formatTime = (date: Date) => {
+    return format(date, 'HH:mm:ss');
+  };
+
+  const formatDate = (date: Date) => {
+    return format(date, 'EEEE, d MMMM yyyy г.', { locale: ru });
+  };
+
+  // Get total break time for the day (from database)
+  const getTotalBreakTime = () => {
+    return user?.daily_break_time || 0;
+  };
+
+  // Get current total break time including current break
+  const getCurrentTotalBreakTime = () => {
+    const dailyBreakTime = getTotalBreakTime();
+    if (user?.status === 'on_break') {
+      return dailyBreakTime + currentBreakDuration;
+    }
+    return dailyBreakTime;
+  };
+
+  // Format break duration in HH:MM:SS
+  const formatBreakDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const isWorkingHours = isWithinWorkingHours();
+  const currentHour = currentTime.getHours();
+  const greeting = getGreeting();
+
+  const handleAction = async (action: () => Promise<void>, loadingMessage: string, successMessage: string) => {
+    setIsLoading(true);
     try {
-      const userLogs = await timeLogsAPI.getUserLogs(user.id, logPeriod);
-      setLogs(userLogs);
+      await action();
+      toast.success(successMessage);
     } catch (error) {
-      toast.error('Ошибка загрузки логов');
+      toast.error(`Ошибка: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (showLogs) {
-      loadLogs();
-    }
-  }, [showLogs, logPeriod, user]);
 
   const handleStartWork = async () => {
     if (!user) return;
     
-    try {
+    await handleAction(async () => {
       await timeLogsAPI.logAction('start_work', user.id);
-      const updatedUser = { ...user, status: 'working' as const };
-      updateUserStatus?.(updatedUser);
-      toast.success('Рабочий день начат');
-    } catch (error) {
-      toast.error('Ошибка при начале работы');
-    }
+      const updatedUser = await usersAPI.getById(user.id);
+      if (updatedUser && updateUserStatus) {
+        updateUserStatus(updatedUser);
+      }
+    }, 'Начинаем рабочий день...', 'Рабочий день начат! Удачной работы! 🚀');
   };
 
   const handleStartBreak = async () => {
     if (!user) return;
     
-    try {
+    await handleAction(async () => {
       await timeLogsAPI.logAction('start_break', user.id);
-      const updatedUser = { 
-        ...user, 
-        status: 'on_break' as const, 
-        break_start_time: new Date().toISOString() 
-      };
-      updateUserStatus?.(updatedUser);
-      toast.success('Перерыв начат');
-    } catch (error) {
-      toast.error('Ошибка при начале перерыва');
-    }
+      const updatedUser = await usersAPI.getById(user.id);
+      if (updatedUser && updateUserStatus) {
+        updateUserStatus(updatedUser);
+        setCurrentBreakDuration(0);
+      }
+    }, 'Начинаем перерыв...', 'Перерыв начат! Отдохните хорошо! ☕');
   };
 
   const handleEndBreak = async () => {
     if (!user) return;
     
-    try {
+    await handleAction(async () => {
       await timeLogsAPI.logAction('end_break', user.id);
-      const updatedUser = { 
-        ...user, 
-        status: 'working' as const, 
-        break_start_time: undefined 
-      };
-      updateUserStatus?.(updatedUser);
-      await loadDailyBreakTime();
-      toast.success('Перерыв завершен');
-    } catch (error) {
-      toast.error('Ошибка при завершении перерыва');
-    }
+      const updatedUser = await usersAPI.getById(user.id);
+      if (updatedUser && updateUserStatus) {
+        updateUserStatus(updatedUser);
+        setCurrentBreakDuration(0);
+      }
+    }, 'Завершаем перерыв...', 'Перерыв закончен! Добро пожаловать обратно! 💪');
   };
 
   const handleEndWork = async () => {
     if (!user) return;
     
-    try {
+    await handleAction(async () => {
       await timeLogsAPI.logAction('end_work', user.id);
-      const updatedUser = { 
-        ...user, 
-        status: 'offline' as const, 
-        break_start_time: undefined 
-      };
-      updateUserStatus?.(updatedUser);
-      toast.success('Рабочий день завершен');
-    } catch (error) {
-      toast.error('Ошибка при завершении работы');
-    }
+      const updatedUser = await usersAPI.getById(user.id);
+      if (updatedUser && updateUserStatus) {
+        updateUserStatus(updatedUser);
+        setCurrentBreakDuration(0);
+      }
+    }, 'Завершаем рабочий день...', 'Рабочий день завершен! Отличная работа! 🎉');
   };
 
-  const onPasswordSubmit = async (data: PasswordChangeForm) => {
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
     if (!user) return;
 
     try {
-      await usersAPI.changePassword(user.id, data.currentPassword, data.newPassword);
-      toast.success('Пароль успешно изменен');
-      setShowPasswordModal(false);
-      reset();
+      await usersAPI.changePassword(user.id, currentPassword, newPassword);
+      setChangePasswordModalOpen(false);
+      toast.success('Пароль успешно изменен! 🔐');
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes('Неверный текущий пароль')) {
-          setError('currentPassword', { message: 'Неверный текущий пароль' });
-        } else {
-          toast.error(error.message);
-        }
-      } else {
-        toast.error('Ошибка при смене пароля');
-      }
+      toast.error(`Ошибка при смене пароля: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      throw error;
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(Math.abs(seconds) / 3600);
-    const minutes = Math.floor((Math.abs(seconds) % 3600) / 60);
-    const secs = Math.abs(seconds) % 60;
-    const sign = seconds < 0 ? '-' : '';
-    return `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  if (!user) return null;
 
-  const formatDisplayTime = (date: Date) => {
-    return date.toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-  };
+  // Enhanced break screen with real-time updates
+  if (user.status === 'on_break') {
+    const currentTotalBreakTime = getCurrentTotalBreakTime();
+    const isExceeded = currentTotalBreakTime > MAX_BREAK_TIME;
+    const remainingTime = Math.max(0, MAX_BREAK_TIME - currentTotalBreakTime);
+    const progressPercentage = Math.min(100, (currentTotalBreakTime / MAX_BREAK_TIME) * 100);
 
-  const formatDisplayDate = (date: Date) => {
-    return date.toLocaleDateString('ru-RU', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Доброе утро';
-    if (hour < 17) return 'Добрый день';
-    return 'Добрый вечер';
-  };
-
-  const getActionText = (action: string) => {
-    switch (action) {
-      case 'start_work': return 'Начало работы';
-      case 'start_break': return 'Начало перерыва';
-      case 'end_break': return 'Конец перерыва';
-      case 'end_work': return 'Конец работы';
-      default: return action;
-    }
-  };
-
-  const isBreakExceeded = breakDuration > MAX_BREAK_TIME;
-  const remainingBreakTime = MAX_BREAK_TIME - (dailyBreakTime + breakDuration);
-
-  if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+      <div className={`min-h-screen bg-gradient-to-br ${isExceeded ? 'from-red-50 via-orange-50 to-red-100' : 'from-orange-50 via-amber-50 to-red-50'} p-4 relative overflow-hidden`}>
+        {/* Enhanced animated background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-orange-200 rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-red-200 rounded-full opacity-30 animate-bounce"></div>
+          <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-amber-200 rounded-full opacity-15 animate-pulse"></div>
+          <div className="absolute bottom-40 right-1/3 w-20 h-20 bg-orange-300 rounded-full opacity-25 animate-bounce"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-orange-100 to-red-100 rounded-full opacity-10 animate-pulse"></div>
+          
+          {/* Enhanced floating icons */}
+          <div className="absolute top-1/4 left-1/4 animate-float">
+            <Coffee className="w-8 h-8 text-orange-300 opacity-30" />
+          </div>
+          <div className="absolute top-3/4 right-1/4 animate-float-delayed">
+            <Timer className="w-6 h-6 text-red-300 opacity-40" />
+          </div>
+          <div className="absolute top-1/3 right-1/3 animate-float">
+            <Heart className="w-5 h-5 text-pink-300 opacity-35" />
+          </div>
+          <div className="absolute bottom-1/3 left-1/5 animate-float-delayed">
+            <Star className="w-4 h-4 text-yellow-300 opacity-40" />
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          {/* Enhanced header */}
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-6">
+              <div className={`rounded-2xl w-20 h-20 flex items-center justify-center shadow-xl relative overflow-hidden ${
+                isExceeded ? 'bg-gradient-to-br from-red-500 to-red-600 animate-pulse shadow-glow-red' : 'bg-gradient-to-br from-orange-400 to-red-500 shadow-glow-orange'
+              }`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50"></div>
+                <Coffee className="w-10 h-10 text-white relative z-10" />
+                {isExceeded && (
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-white" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
+                  {isExceeded ? 'Превышение перерыва!' : 'Перерыв в процессе'}
+                  <div className="flex gap-1">
+                    <Sparkles className="w-8 h-8 text-orange-500 animate-pulse" />
+                    <Coffee className="w-6 h-6 text-amber-500 animate-bounce" />
+                    {isExceeded && <Flame className="w-7 h-7 text-red-500 animate-bounce" />}
+                  </div>
+                </h1>
+                <p className="text-gray-600 text-xl capitalize">
+                  {format(currentTime, 'EEEE, d MMMM yyyy г.', { locale: ru })}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Clock className="w-5 h-5 text-gray-500" />
+                  <span className="text-gray-500 font-medium">
+                    Текущее время: {formatTime(currentTime)} (Ташкент)
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              {user.role === 'admin' && !impersonating && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Settings className="w-5 h-5" />
+                  Админ панель
+                </button>
+              )}
+              {impersonating && (
+                <button
+                  onClick={exitImpersonation}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  Назад к панели
+                </button>
+              )}
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <LogOut className="w-5 h-5" />
+                Выйти
+              </button>
+            </div>
+          </div>
+
+          {/* Main break content with enhanced design */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            {/* Central timer display */}
+            <div className="lg:col-span-2">
+              <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-10 text-center relative overflow-hidden border border-white/50">
+                {/* Enhanced background decoration */}
+                <div className={`absolute top-0 left-0 w-full h-2 ${
+                  isExceeded 
+                    ? 'bg-gradient-to-r from-red-500 to-red-600 animate-pulse' 
+                    : 'bg-gradient-to-r from-orange-400 to-red-500'
+                }`}></div>
+                
+                <div className={`rounded-3xl w-40 h-40 flex items-center justify-center mx-auto mb-10 shadow-2xl relative overflow-hidden ${
+                  isExceeded 
+                    ? 'bg-gradient-to-br from-red-500 to-red-600 animate-pulse shadow-glow-red' 
+                    : 'bg-gradient-to-br from-orange-400 to-red-500 shadow-glow-orange'
+                }`}>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50 animate-pulse"></div>
+                  <Timer className="w-20 h-20 text-white relative z-10" />
+                  {isExceeded && (
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-red-600 rounded-full flex items-center justify-center animate-bounce">
+                      <AlertTriangle className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </div>
+                
+                <h2 className={`text-5xl font-bold mb-8 ${
+                  isExceeded 
+                    ? 'text-red-600 animate-pulse' 
+                    : 'bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent'
+                }`}>
+                  {isExceeded ? 'ПРЕВЫШЕНИЕ ЛИМИТА!' : 'Вы на перерыве'}
+                </h2>
+                
+                {/* Current break timer */}
+                <div className="mb-10">
+                  <p className="text-lg text-gray-600 mb-4 font-medium">
+                    Текущий перерыв:
+                  </p>
+                  <div className={`text-8xl font-mono font-bold mb-4 tracking-wider text-shadow-lg ${
+                    isExceeded ? 'text-red-600 animate-pulse' : 'text-blue-600'
+                  }`}>
+                    {formatBreakDuration(currentBreakDuration)}
+                  </div>
+                  <p className="text-gray-500 bg-gray-100 rounded-lg px-4 py-2 inline-block">
+                    Начат в {user.break_start_time ? format(convertToTashkentTime(user.break_start_time), 'HH:mm', { locale: ru }) : '--:--'} (Ташкент)
+                  </p>
+                </div>
+
+                {/* Enhanced progress bar */}
+                <div className="mb-10">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-lg text-gray-600 font-medium">Использовано времени</span>
+                    <span className={`text-xl font-bold px-3 py-1 rounded-lg ${
+                      isExceeded 
+                        ? 'text-red-800 bg-red-100' 
+                        : progressPercentage > 80 
+                          ? 'text-orange-800 bg-orange-100'
+                          : 'text-gray-800 bg-gray-100'
+                    }`}>
+                      {Math.round(progressPercentage)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+                    <div 
+                      className={`h-4 rounded-full transition-all duration-500 shadow-lg ${
+                        isExceeded 
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 animate-pulse' 
+                          : progressPercentage > 80 
+                            ? 'bg-gradient-to-r from-orange-500 to-red-500'
+                            : 'bg-gradient-to-r from-green-500 to-orange-500'
+                      }`}
+                      style={{ width: `${Math.min(100, progressPercentage)}%` }}
+                    ></div>
+                  </div>
+                  {!isExceeded && (
+                    <div className="mt-2 text-sm text-gray-600 text-center">
+                      Осталось: {formatBreakDuration(remainingTime)}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Enhanced action button */}
+                <button
+                  onClick={handleEndBreak}
+                  disabled={isLoading}
+                  className={`px-16 py-5 rounded-2xl font-bold text-xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl ripple disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+                    isExceeded
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 animate-pulse shadow-glow-red'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-glow-green'
+                  }`}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Завершаем...
+                    </div>
+                  ) : isExceeded ? (
+                    'Срочно завершить перерыв!'
+                  ) : (
+                    'Закончить перерыв'
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Enhanced side statistics */}
+            <div className="space-y-6">
+              {/* Daily break summary */}
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`rounded-xl p-3 shadow-lg ${
+                    isExceeded 
+                      ? 'bg-gradient-to-r from-red-400 to-red-500' 
+                      : 'bg-gradient-to-r from-orange-400 to-red-500'
+                  }`}>
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-lg">Общее время за день</h3>
+                </div>
+                <div className={`text-4xl font-mono font-bold mb-4 ${isExceeded ? 'text-red-500 animate-pulse' : 'text-orange-500'}`}>
+                  {formatBreakDuration(currentTotalBreakTime)}
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+                  <span className="font-medium">Лимит: 01:00:00</span>
+                  {!isExceeded && (
+                    <span className="text-green-600 font-bold">
+                      Осталось: {formatBreakDuration(remainingTime)}
+                    </span>
+                  )}
+                </div>
+                {isExceeded && (
+                  <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="font-bold text-sm">
+                        Превышение: {formatBreakDuration(currentTotalBreakTime - MAX_BREAK_TIME)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Enhanced break tips */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl shadow-xl p-6 border border-blue-200 card-hover">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-3 shadow-lg">
+                    <Target className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-lg">Советы для перерыва</h3>
+                </div>
+                <div className="space-y-4 text-sm text-gray-700">
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-colors">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-medium">Выпейте стакан воды 💧</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-colors">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-medium">Сделайте легкую разминку 🤸‍♂️</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-colors">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-medium">Отдохните глазам от экрана 👀</span>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-colors">
+                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-medium">Проветрите помещение 🌬️</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced quick stats */}
+              <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-white/50 card-hover">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl p-3 shadow-lg">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="font-bold text-gray-800 text-lg">Статистика</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <span className="text-gray-600 font-medium">Рабочие часы</span>
+                    <span className="font-bold text-gray-800">{WORK_START_HOUR}:00 - {WORK_END_HOUR}:00</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                    <span className="text-gray-600 font-medium">Статус</span>
+                    <span className="font-bold text-orange-600 flex items-center gap-1">
+                      <Coffee className="w-4 h-4" />
+                      На перерыве
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <span className="text-gray-600 font-medium">Сегодня</span>
+                    <span className="font-bold text-gray-800">{format(currentTime, 'dd.MM.yyyy')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced warning message */}
+          {isExceeded && (
+            <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 rounded-3xl p-8 mb-8 shadow-2xl animate-glow">
+              <div className="flex items-center justify-center gap-4 mb-6">
+                <div className="bg-red-500 rounded-2xl p-4 animate-pulse shadow-lg">
+                  <AlertTriangle className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-3xl font-bold text-red-700 flex items-center gap-2">
+                  Превышен лимит перерыва!
+                  <Flame className="w-8 h-8 text-red-600 animate-bounce" />
+                </h3>
+              </div>
+              <div className="text-center space-y-4">
+                <p className="text-red-600 font-semibold text-lg">
+                  Вы превысили максимально допустимое время перерыва в 1 час.
+                </p>
+                <p className="text-red-500">
+                  Администратор уведомлен автоматически. Рекомендуется немедленно завершить перерыв.
+                </p>
+                <div className="mt-6 p-4 bg-red-200 rounded-xl">
+                  <p className="text-red-800 font-bold text-lg">
+                    Превышение: {formatBreakDuration(currentTotalBreakTime - MAX_BREAK_TIME)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced footer */}
+          <div className="text-center text-gray-500">
+            <p className="text-lg">Система автоматически отслеживает время перерыва</p>
+            <p className="mt-2 font-medium">Максимальное время перерыва в день: 1 час</p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm">
+              <Shield className="w-4 h-4" />
+              <span>Все действия логируются и отправляются webhook уведомления</span>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Enhanced main dashboard
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-lg border-b border-white/20 shadow-lg sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Title */}
-            <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl w-10 h-10 flex items-center justify-center shadow-lg">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  CHRONOS
-                </h1>
-                <p className="text-sm text-gray-500">Система учета времени</p>
-              </div>
-            </div>
-
-            {/* User Actions */}
-            <div className="flex items-center space-x-3">
-              {impersonating && (
-                <button
-                  onClick={exitImpersonation}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  <Eye className="w-4 h-4" />
-                  Выйти из режима
-                </button>
-              )}
-              
-              {user.role === 'admin' && !impersonating && (
-                <a
-                  href="/admin"
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  <Shield className="w-4 h-4" />
-                  Админ панель
-                </a>
-              )}
-              
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <Lock className="w-4 h-4" />
-                Сменить пароль
-              </button>
-              
-              <button
-                onClick={logout}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <LogOut className="w-4 h-4" />
-                Выйти
-              </button>
-            </div>
-          </div>
+    <div className={`min-h-screen bg-gradient-to-br ${greeting.bgColor} p-4 relative overflow-hidden`}>
+      {/* Enhanced animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-200 rounded-full opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-48 h-48 bg-purple-200 rounded-full opacity-15 animate-bounce"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full opacity-5 animate-pulse"></div>
+        
+        {/* Enhanced floating work icons */}
+        <div className="absolute top-1/4 left-1/4 animate-float">
+          <Shield className="w-8 h-8 text-blue-300 opacity-30" />
         </div>
-      </header>
+        <div className="absolute top-3/4 right-1/4 animate-float-delayed">
+          <Award className="w-6 h-6 text-purple-300 opacity-40" />
+        </div>
+        <div className="absolute bottom-1/4 left-1/3 animate-float">
+          <BarChart3 className="w-7 h-7 text-indigo-300 opacity-35" />
+        </div>
+        <div className="absolute top-1/3 right-1/5 animate-float-delayed">
+          <Waves className="w-5 h-5 text-cyan-300 opacity-30" />
+        </div>
+        <div className="absolute bottom-1/3 right-1/4 animate-float">
+          <Wind className="w-6 h-6 text-blue-300 opacity-25" />
+        </div>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  {getGreeting()}, {user.name}!
-                </h2>
-                <div className="flex items-center gap-4 text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{formatDisplayDate(currentTime)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <UserIcon className="w-4 h-4" />
-                    <span className="capitalize">{user.role === 'admin' ? 'Администратор' : 'Сотрудник'}</span>
-                  </div>
-                </div>
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`bg-gradient-to-r ${greeting.color} rounded-2xl p-4 shadow-xl relative overflow-hidden`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50 animate-pulse"></div>
+                <greeting.icon className="w-10 h-10 text-white relative z-10" />
               </div>
-              
-              <div className="text-right">
-                <div className="text-sm text-gray-500 mb-1">Статус</div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    user.status === 'working' ? 'bg-green-500 animate-pulse' :
-                    user.status === 'on_break' ? 'bg-orange-500 animate-pulse' :
-                    'bg-gray-400'
-                  }`}></div>
-                  <span className="font-medium">
-                    {user.status === 'working' ? 'На работе' :
-                     user.status === 'on_break' ? 'На перерыве' :
-                     'Не в сети'}
+              <div>
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                  {greeting.text}, {getFirstName(user.name)}! 
+                  <span className="ml-2">
+                    {currentHour < 12 ? '🌅' : currentHour < 17 ? '☀️' : currentHour < 22 ? '🌆' : '🌙'}
                   </span>
-                </div>
+                </h1>
+                <p className="text-gray-600 text-xl capitalize flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  {formatDate(currentTime)}
+                </p>
               </div>
             </div>
+            {!isWorkingHours && (
+              <div className="flex items-center gap-3 mt-4 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300 rounded-xl p-4 shadow-lg">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+                <span className="text-amber-700 font-medium">
+                  Рабочие часы: {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00 (Ташкентское время)
+                </span>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Time Display */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-orange-400 via-pink-400 to-purple-500 rounded-3xl p-8 text-white shadow-2xl">
-            <div className="text-center">
-              <div className="bg-white/20 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-                <Clock className="w-8 h-8" />
-              </div>
-              <div className="text-6xl font-bold mb-2 font-mono tracking-wider">
-                {formatDisplayTime(currentTime)}
-              </div>
-              <p className="text-white/90 text-lg">Текущее время (Ташкент)</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Break Status */}
-        {user.status === 'on_break' && (
-          <div className="mb-8">
-            <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
-              <div className="text-center">
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                  <Coffee className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">Вы на перерыве</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 border border-orange-200">
-                    <div className="text-sm text-gray-600 mb-1">Общее время перерыва за день:</div>
-                    <div className={`text-3xl font-bold font-mono ${
-                      dailyBreakTime + breakDuration > MAX_BREAK_TIME ? 'text-red-600' : 'text-orange-600'
-                    }`}>
-                      {formatTime(dailyBreakTime + breakDuration)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Лимит: {formatTime(MAX_BREAK_TIME)}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
-                    <div className="text-sm text-gray-600 mb-1">Текущий перерыв:</div>
-                    <div className={`text-3xl font-bold font-mono ${
-                      isBreakExceeded ? 'text-red-600' : 'text-blue-600'
-                    }`}>
-                      {formatTime(breakDuration)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {user.break_start_time && `Начат в ${formatTashkentTime(convertToTashkentTime(user.break_start_time)).split(' в ')[1]}`}
-                    </div>
-                  </div>
-                </div>
-
-                {isBreakExceeded && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-                    <div className="flex items-center justify-center gap-2 text-red-700">
-                      <AlertCircle className="w-5 h-5" />
-                      <span className="font-semibold">Превышен лимит перерыва!</span>
-                    </div>
-                    <p className="text-red-600 text-sm mt-1">
-                      Вы превысили дневной лимит перерыва на {formatTime(Math.abs(remainingBreakTime))}
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleEndBreak}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 mx-auto"
-                >
-                  <Play className="w-5 h-5" />
-                  Закончить перерыв
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button
-              onClick={handleStartWork}
-              disabled={user.status === 'working' || user.status === 'on_break'}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-8 rounded-2xl font-semibold text-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex flex-col items-center gap-4"
-            >
-              <div className="bg-white/20 rounded-2xl w-16 h-16 flex items-center justify-center">
-                <Play className="w-8 h-8" />
-              </div>
-              <span>Начать работу</span>
-            </button>
-
-            <button
-              onClick={handleStartBreak}
-              disabled={user.status !== 'working'}
-              className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-8 rounded-2xl font-semibold text-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex flex-col items-center gap-4"
-            >
-              <div className="bg-white/20 rounded-2xl w-16 h-16 flex items-center justify-center">
-                <Pause className="w-8 h-8" />
-              </div>
-              <span>Перерыв</span>
-            </button>
-
-            <button
-              onClick={handleEndWork}
-              disabled={user.status === 'offline'}
-              className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-8 rounded-2xl font-semibold text-lg hover:from-red-600 hover:to-pink-600 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex flex-col items-center gap-4"
-            >
-              <div className="bg-white/20 rounded-2xl w-16 h-16 flex items-center justify-center">
-                <Square className="w-8 h-8" />
-              </div>
-              <span>Завершить день</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Statistics */}
-        <div className="mb-8">
-          <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-6 h-6" />
-              Статистика за сегодня
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-                <div className="text-sm text-gray-600 mb-1">Общее время перерыва</div>
-                <div className="text-2xl font-bold text-blue-600 font-mono">
-                  {formatTime(dailyBreakTime + (user.status === 'on_break' ? breakDuration : 0))}
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                <div className="text-sm text-gray-600 mb-1">Оставшееся время перерыва</div>
-                <div className={`text-2xl font-bold font-mono ${
-                  remainingBreakTime < 0 ? 'text-red-600' : 'text-green-600'
-                }`}>
-                  {formatTime(remainingBreakTime)}
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-                <div className="text-sm text-gray-600 mb-1">Рабочие часы</div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {WORK_START_HOUR}:00 - {WORK_END_HOUR}:00
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Logs Section */}
-        <div className="mb-8">
-          <div className="bg-white/70 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <History className="w-6 h-6" />
-                История активности
-              </h3>
+          <div className="flex gap-4">
+            {user.role === 'admin' && !impersonating && (
               <button
-                onClick={() => setShowLogs(!showLogs)}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                {showLogs ? 'Скрыть' : 'Показать'}
+                <Settings className="w-5 h-5" />
+                Админ панель
               </button>
+            )}
+            {impersonating && (
+              <button
+                onClick={exitImpersonation}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                Назад к панели
+              </button>
+            )}
+            <button 
+              onClick={() => setChangePasswordModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <KeyRound className="w-5 h-5" />
+              Сменить пароль
+            </button>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <LogOut className="w-5 h-5" />
+              Выйти
+            </button>
+          </div>
+        </div>
+
+        {/* Enhanced time display */}
+        <div className={`bg-gradient-to-r ${greeting.color} rounded-3xl shadow-2xl p-10 mb-10 text-white text-center relative overflow-hidden`}>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full -mr-20 -mt-20 animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white opacity-10 rounded-full -ml-16 -mb-16 animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white opacity-5 rounded-full animate-pulse"></div>
+          
+          <div className="relative z-10">
+            <div className="bg-white/20 rounded-3xl w-24 h-24 flex items-center justify-center mx-auto mb-8 shadow-lg">
+              <Clock className="w-12 h-12 opacity-90" />
             </div>
-
-            {showLogs && (
-              <div>
-                <div className="flex gap-2 mb-4">
-                  {(['day', 'month', 'all'] as const).map((period) => (
-                    <button
-                      key={period}
-                      onClick={() => setLogPeriod(period)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                        logPeriod === period
-                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {period === 'day' ? 'За день' : period === 'month' ? 'За месяц' : 'Все время'}
-                    </button>
-                  ))}
-                </div>
-
-                {loading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Загрузка логов...</p>
-                  </div>
-                ) : logs.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Нет записей за выбранный период</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                    {logs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            log.action === 'start_work' ? 'bg-green-500' :
-                            log.action === 'start_break' ? 'bg-orange-500' :
-                            log.action === 'end_break' ? 'bg-blue-500' :
-                            'bg-red-500'
-                          }`}></div>
-                          <span className="font-medium">{getActionText(log.action)}</span>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          {formatTashkentTime(convertToTashkentTime(log.timestamp))}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            <div className="text-8xl font-mono font-bold mb-6 tracking-wider text-shadow-lg">
+              {formatTime(currentTime)}
+            </div>
+            <p className="text-white/90 text-2xl font-medium mb-4">
+              Текущее время (Ташкент)
+            </p>
+            
+            {!isWorkingHours && (
+              <div className="mt-6 bg-white/20 rounded-xl p-4">
+                <p className="text-white/90 font-medium">
+                  {currentHour < WORK_START_HOUR ? 'Рабочий день еще не начался 🌅' : 'Рабочий день завершен 🌆'}
+                </p>
               </div>
             )}
           </div>
         </div>
-      </main>
 
-      {/* Password Change Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <Lock className="w-6 h-6" />
-                Смена пароля
+        {/* Break time summary */}
+        {user.daily_break_time && user.daily_break_time > 60 && (
+          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 mb-10 text-center border-l-4 border-orange-400 card-hover">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-3 shadow-lg">
+                <Coffee className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">
+                Время перерыва за сегодня
               </h3>
-              <button
-                onClick={() => {
-                  setShowPasswordModal(false);
-                  reset();
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
             </div>
+            <div className={`text-5xl font-mono font-bold mb-4 ${
+              getCurrentTotalBreakTime() > MAX_BREAK_TIME ? 'text-red-500' : 'text-orange-500'
+            }`}>
+              {formatBreakDuration(getCurrentTotalBreakTime())}
+            </div>
+            <div className="flex items-center justify-center gap-6 text-gray-600 bg-gray-50 rounded-xl p-4">
+              <span className="font-medium">Лимит: 01:00:00 в день</span>
+              {getCurrentTotalBreakTime() > MAX_BREAK_TIME && (
+                <span className="text-red-500 font-bold">
+                  Превышение: {formatBreakDuration(getCurrentTotalBreakTime() - MAX_BREAK_TIME)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
-            <form onSubmit={handleSubmit(onPasswordSubmit)} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Текущий пароль
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword.current ? 'text' : 'password'}
-                    {...register('currentPassword', {
-                      required: 'Введите текущий пароль',
-                    })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Введите текущий пароль"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+        {/* Enhanced action buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-10 text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-white/50 card-hover">
+            <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-3xl w-24 h-24 flex items-center justify-center mx-auto mb-8 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50 animate-pulse"></div>
+              <Play className="w-12 h-12 text-white relative z-10" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              Начать работу
+            </h3>
+            <p className="text-gray-600 mb-10 leading-relaxed text-lg">
+              Зафиксировать начало рабочего дня и начать отслеживание времени 🚀
+            </p>
+            <button
+              onClick={handleStartWork}
+              disabled={user.status === 'working' || isLoading}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-5 px-8 rounded-2xl font-bold text-xl hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl ripple"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Начинаем...
                 </div>
-                {errors.currentPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.currentPassword.message}</p>
-                )}
-              </div>
+              ) : user.status === 'working' ? (
+                'Уже работаете ✅'
+              ) : (
+                'Начать работу'
+              )}
+            </button>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Новый пароль
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword.new ? 'text' : 'password'}
-                    {...register('newPassword', {
-                      required: 'Введите новый пароль',
-                      minLength: {
-                        value: 6,
-                        message: 'Пароль должен содержать минимум 6 символов',
-                      },
-                    })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Введите новый пароль"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-10 text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-white/50 card-hover">
+            <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-3xl w-24 h-24 flex items-center justify-center mx-auto mb-8 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50 animate-pulse"></div>
+              <Pause className="w-12 h-12 text-white relative z-10" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              Перерыв
+            </h3>
+            <p className="text-gray-600 mb-10 leading-relaxed text-lg">
+              Зафиксировать начало перерыва. Максимум 1 час в день ☕
+            </p>
+            <button
+              onClick={handleStartBreak}
+              disabled={user.status !== 'working' || isLoading}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-5 px-8 rounded-2xl font-bold text-xl hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl ripple"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Начинаем...
                 </div>
-                {errors.newPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.newPassword.message}</p>
-                )}
-              </div>
+              ) : user.status === 'working' ? (
+                'Начать перерыв'
+              ) : (
+                'Недоступно'
+              )}
+            </button>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Подтвердите новый пароль
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword.confirm ? 'text' : 'password'}
-                    {...register('confirmPassword', {
-                      required: 'Подтвердите новый пароль',
-                      validate: (value) =>
-                        value === newPassword || 'Пароли не совпадают',
-                    })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Подтвердите новый пароль"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-10 text-center hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-white/50 card-hover">
+            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl w-24 h-24 flex items-center justify-center mx-auto mb-8 shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-50 animate-pulse"></div>
+              <Square className="w-12 h-12 text-white relative z-10" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              Завершить день
+            </h3>
+            <p className="text-gray-600 mb-10 leading-relaxed text-lg">
+              Зафиксировать окончание рабочего дня и остановить отслеживание 🎉
+            </p>
+            <button
+              onClick={handleEndWork}
+              disabled={user.status === 'offline' || isLoading}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-5 px-8 rounded-2xl font-bold text-xl hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl ripple"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Завершаем...
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    reset();
-                  }}
-                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Сохранение...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Сохранить
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+              ) : user.status === 'offline' ? (
+                'День завершен ✅'
+              ) : (
+                'Завершить день'
+              )}
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Enhanced status display */}
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center border border-white/50 card-hover">
+          <div className="flex items-center justify-center gap-4 text-xl">
+            {user.status === 'offline' ? (
+              <>
+                <div className="bg-gray-500 rounded-full p-2">
+                  <WifiOff className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-gray-600 font-semibold">Статус: Не в сети 😴</span>
+              </>
+            ) : user.status === 'working' ? (
+              <>
+                <div className="bg-green-500 rounded-full p-2 animate-pulse">
+                  <Wifi className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-green-600 font-semibold">Статус: На работе 💪</span>
+              </>
+            ) : (
+              <>
+                <div className="bg-orange-500 rounded-full p-2">
+                  <Coffee className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-orange-600 font-semibold">Статус: На перерыве ☕</span>
+              </>
+            )}
+          </div>
+          <div className="mt-4 text-sm text-gray-500 flex items-center justify-center gap-2">
+            <Shield className="w-4 h-4" />
+            <span>Все действия автоматически логируются и отправляются webhook уведомления</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={changePasswordModalOpen}
+        onClose={() => setChangePasswordModalOpen(false)}
+        onSubmit={handleChangePassword}
+      />
     </div>
   );
 };
