@@ -283,10 +283,34 @@ const UserDashboard: React.FC = () => {
     return { text: 'Доброй ночи', icon: Moon, color: 'from-indigo-500 via-purple-500 to-pink-500', bgColor: 'from-indigo-50 to-purple-50' };
   };
 
-  // ИСПРАВЛЕНО: Extract first name from full name (берем первое слово, а не последнее)
+  // УЛУЧШЕННАЯ функция для извлечения имени
   const getFirstName = (fullName: string) => {
-    const nameParts = fullName.trim().split(' ');
-    return nameParts[0]; // Берем первое слово (имя), а не последнее
+    const nameParts = fullName.trim().split(' ').filter(part => part.length > 0);
+    
+    if (nameParts.length === 0) return 'Пользователь';
+    
+    // Если только одно слово - возвращаем его
+    if (nameParts.length === 1) return nameParts[0];
+    
+    // Проверяем, является ли первое слово типичной фамилией (заканчивается на -ов, -ев, -ин, -ын, -ич, -енко и т.д.)
+    const firstWord = nameParts[0];
+    const lastWord = nameParts[nameParts.length - 1];
+    
+    // Типичные окончания фамилий
+    const surnameEndings = ['ов', 'ев', 'ин', 'ын', 'ич', 'енко', 'ко', 'ук', 'юк', 'ский', 'цкий', 'ной', 'ная'];
+    
+    // Проверяем, заканчивается ли первое слово на типичное окончание фамилии
+    const isFirstWordSurname = surnameEndings.some(ending => 
+      firstWord.toLowerCase().endsWith(ending.toLowerCase())
+    );
+    
+    // Если первое слово похоже на фамилию и есть второе слово, возвращаем второе
+    if (isFirstWordSurname && nameParts.length > 1) {
+      return nameParts[1];
+    }
+    
+    // В остальных случаях возвращаем первое слово
+    return firstWord;
   };
 
   const formatTime = (date: Date) => {
