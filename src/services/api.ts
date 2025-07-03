@@ -292,11 +292,89 @@ const cancelBreakMonitoring = (userId: number) => {
   }
 };
 
-// ИСПРАВЛЕНО: Проверка, может ли пользователь начать перерыв - теперь всегда разрешает
-const canUserStartBreak = async (userId: number): Promise<{ canStart: boolean; reason?: string }> => {
-  // Всегда разрешаем начать перерыв
-  console.log(`✅ User ${userId} can start break - restrictions removed`);
-  return { canStart: true };
+// КРИТИЧЕСКИ ВАЖНО: Проверка лимита перерыва с блокировкой
+const canUserStartBreak = async (userId: number): Promise<{ canStart: boolean; reason?: string; dailyBreakTime?: number }> => {
+  try {
+    // Проверяем, превысил ли пользователь лимит
+    if (usersExceededBreakLimit.has(userId)) {
+      console.log(`🚫 User ${userId} is blocked from starting breaks - exceeded daily limit`);
+      return { 
+        canStart: false, 
+        reason: 'Вы превысили дневной лимит перерыва (60 минут). Новые перерывы заблокированы до завтра.' 
+      };
+    }
+
+    // Вычисляем общее время перерыва за сегодня
+    const tashkentNow = getTashkentTime();
+    const today = new Date(tashkentNow);
+    today.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC for database query
+    const todayUTC = new Date(today.getTime() - (TASHKENT_OFFSET_HOURS * 60 * 60 * 1000));
+    
+    const { data: todayLogs, error: logsError } = await supabase
+      .from('time_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('timestamp', todayUTC.toISOString())
+      .order('timestamp', { ascending: true });
+
+    if (logsError) {
+      console.error('Error fetching logs for break check:', logsError);
+      return { canStart: true }; // В случае ошибки разрешаем
+    }
+
+    let dailyBreakTime = 0;
+    let currentBreakStart: Date | null = null;
+
+    todayLogs?.forEach((log) => {
+      if (log.action === 'start_break') {
+        currentBreakStart = new Date(log.timestamp);
+      } else if (log.action === 'end_break' && currentBreakStart) {
+        const breakEnd = new Date(log.timestamp);
+        dailyBreakTime += Math.floor((breakEnd.getTime() - currentBreakStart.getTime()) / 1000);
+        currentBreakStart = null;
+      }
+    });
+
+    // Проверяем текущий статус пользователя
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('status, break_start_time')
+      .eq('id', userId)
+      .single();
+
+    if (!userError && user && user.status === 'on_break' && user.break_start_time) {
+      const currentBreakDuration = Math.floor((Date.now() - new Date(user.break_start_time).getTime()) / 1000);
+      dailyBreakTime += currentBreakDuration;
+    }
+
+    const dailyBreakMinutes = Math.floor(dailyBreakTime / 60);
+    const maxBreakMinutes = Math.floor(MAX_BREAK_TIME / 60);
+
+    console.log(`📊 Break check for user ${userId}: ${dailyBreakMinutes}/${maxBreakMinutes} minutes used`);
+
+    if (dailyBreakTime >= MAX_BREAK_TIME) {
+      // Добавляем в список превысивших лимит
+      usersExceededBreakLimit.add(userId);
+      console.log(`🚫 User ${userId} exceeded daily break limit: ${dailyBreakMinutes} minutes`);
+      
+      return { 
+        canStart: false, 
+        reason: `Вы уже использовали ${dailyBreakMinutes} минут перерыва сегодня. Лимит: ${maxBreakMinutes} минут.`,
+        dailyBreakTime: dailyBreakMinutes
+      };
+    }
+
+    return { 
+      canStart: true, 
+      dailyBreakTime: dailyBreakMinutes 
+    };
+
+  } catch (error) {
+    console.error('Error checking break limit:', error);
+    return { canStart: true }; // В случае ошибки разрешаем
+  }
 };
 
 // НОВОЕ: Сброс лимитов в начале нового дня
@@ -774,9 +852,14 @@ export const timeLogsAPI = {
       
       console.log(`📝 Logging action: ${action} for user ${userId} at ${formatTashkentTime(now)}`);
       
-      // ИСПРАВЛЕНО: Убираем проверку лимита перерыва
+      // КРИТИЧЕСКИ ВАЖНО: Проверяем лимит перерыва перед началом
       if (action === 'start_break') {
-        console.log(`✅ User ${userId} starting break - no restrictions applied`);
+        const breakCheck = await canUserStartBreak(userId);
+        if (!breakCheck.canStart) {
+          console.log(`🚫 Break start blocked for user ${userId}: ${breakCheck.reason}`);
+          throw new Error(breakCheck.reason || 'Превышен лимит перерыва');
+        }
+        console.log(`✅ User ${userId} can start break - ${breakCheck.dailyBreakTime || 0} minutes used today`);
       }
       
       // Get user data for webhook notifications
