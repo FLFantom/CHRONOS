@@ -38,7 +38,7 @@ const getTashkentTime = () => {
   return tashkentTime;
 };
 
-// Format date for Tashkent timezone in webhook format - ФОРМАТ ДЛЯ WEBHOOK
+// Format date for Tashkent timezone in webhook format - ИСПРАВЛЕНО: правильный формат
 const formatTashkentTime = (date: Date) => {
   // Конвертируем в Ташкентское время если это UTC дата
   const tashkentTime = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Tashkent"}));
@@ -50,6 +50,7 @@ const formatTashkentTime = (date: Date) => {
   const minutes = String(tashkentTime.getMinutes()).padStart(2, '0');
   const seconds = String(tashkentTime.getSeconds()).padStart(2, '0');
   
+  // ИСПРАВЛЕНО: используем "в" вместо "на" как в вашем примере
   return `${day}.${month}.${year} в ${hours}:${minutes}:${seconds}`;
 };
 
@@ -111,11 +112,12 @@ const handleSupabaseError = (error: any, operation: string) => {
   throw new Error(error.message || `Ошибка при выполнении операции: ${operation}`);
 };
 
-// Enhanced webhook sending with better error handling and logging
+// КРИТИЧЕСКИ ИСПРАВЛЕНО: Улучшенная отправка webhook с правильными заголовками
 const sendWebhook = async (url: string, data: any, webhookType: string) => {
   try {
     console.log(`🔔 Sending ${webhookType} webhook:`, { url, data, timestamp: new Date().toISOString() });
     
+    // ИСПРАВЛЕНО: Добавляем заголовки для ngrok
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -123,28 +125,30 @@ const sendWebhook = async (url: string, data: any, webhookType: string) => {
         'User-Agent': 'CHRONOS-TimeTracking-System/1.0',
         'X-Webhook-Type': webhookType,
         'X-Timestamp': new Date().toISOString(),
+        // КРИТИЧЕСКИ ВАЖНО: Добавляем заголовок для ngrok
+        'ngrok-skip-browser-warning': 'true',
+        'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        ...data,
-        webhookType,
-        timestamp: new Date().toISOString(),
-        source: 'CHRONOS Time Tracking System'
-      }),
+      body: JSON.stringify(data), // ИСПРАВЛЕНО: отправляем только нужные данные
     });
 
+    const responseText = await response.text();
+    
     if (response.ok) {
       console.log(`✅ ${webhookType} webhook sent successfully:`, {
         status: response.status,
         statusText: response.statusText,
         url,
-        data
+        data,
+        response: responseText
       });
     } else {
       console.error(`❌ ${webhookType} webhook failed:`, {
         status: response.status,
         statusText: response.statusText,
         url,
-        data
+        data,
+        response: responseText
       });
     }
   } catch (error) {
@@ -183,21 +187,20 @@ const checkLateness = (startTime: Date, userName: string) => {
   }
 };
 
-// Check if break time is exceeded - ПРОВЕРКА ПРЕВЫШЕНИЯ ПЕРЕРЫВА
+// КРИТИЧЕСКИ ИСПРАВЛЕНО: Проверка превышения перерыва
 const checkBreakExceeded = (breakStartTime: Date, userName: string) => {
   const webhookData = {
     userName,
     startTime: formatTashkentTime(breakStartTime),
   };
   
-  console.log(`🚨 Break time exceeded for ${userName}! Sending break exceeded webhook...`);
-  sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, webhookData, 'break-exceeded');
+  console.log(`🚨 Break time exceeded for ${userName}! Sending break exceeded webhook...`, webhookData);
+  sendWebhook(WEBHOOK_BREAK_EXCEEDED_URL, webhookData, 'notify-break-exceeded');
 };
 
-// ИСПРАВЛЕНО: Улучшенная система мониторинга перерывов с хранением таймеров
+// КРИТИЧЕСКИ ИСПРАВЛЕНО: Система мониторинга перерывов
 const activeBreakTimers = new Map<number, NodeJS.Timeout>();
 
-// Monitor break time and send notification when exceeded - ИСПРАВЛЕНО
 const monitorBreakTime = async (userId: number, userName: string, breakStartTime: Date) => {
   console.log(`⏱️ Starting break monitoring for ${userName} (${userId}):`, {
     breakStartTime: formatTashkentTime(breakStartTime),
@@ -211,19 +214,25 @@ const monitorBreakTime = async (userId: number, userName: string, breakStartTime
     console.log(`🔄 Cleared previous break timer for user ${userId}`);
   }
   
-  // Set timeout for MAX_BREAK_TIME (1 hour)
+  // КРИТИЧЕСКИ ВАЖНО: Устанавливаем таймер на точно 1 час (3600 секунд)
   const timerId = setTimeout(async () => {
     try {
-      console.log(`🔍 Checking break status for ${userName} after 1 hour...`);
+      console.log(`🔍 Checking break status for ${userName} after exactly 1 hour...`);
       
-      // Check if user is still on break
+      // Проверяем текущий статус пользователя
       const { data: user, error } = await supabase
         .from('users')
         .select('status, break_start_time, name')
         .eq('id', userId)
         .single();
 
-      if (!error && user) {
+      if (error) {
+        console.error(`❌ Error checking break status for ${userName}:`, error);
+        activeBreakTimers.delete(userId);
+        return;
+      }
+
+      if (user) {
         console.log(`📊 Break status check result for ${userName}:`, {
           currentStatus: user.status,
           breakStartTime: user.break_start_time,
@@ -231,40 +240,43 @@ const monitorBreakTime = async (userId: number, userName: string, breakStartTime
         });
         
         if (user.status === 'on_break' && user.break_start_time) {
-          // Проверяем, что это тот же перерыв (время начала совпадает)
+          // КРИТИЧЕСКИ ВАЖНО: Проверяем, что это тот же перерыв
           const currentBreakStart = new Date(user.break_start_time);
           const originalBreakStart = breakStartTime;
           
-          // Сравниваем времена с точностью до секунды
+          // Сравниваем времена с точностью до 10 секунд
           const timeDiff = Math.abs(currentBreakStart.getTime() - originalBreakStart.getTime());
           
-          if (timeDiff < 5000) { // Разница менее 5 секунд - это тот же перерыв
-            console.log(`🚨 ${userName} is still on the same break after 1 hour! Triggering webhook...`);
-            checkBreakExceeded(breakStartTime, user.name);
+          if (timeDiff < 10000) { // Разница менее 10 секунд - это тот же перерыв
+            console.log(`🚨 ${userName} is still on the same break after 1 hour! Triggering webhook NOW...`);
+            
+            // КРИТИЧЕСКИ ВАЖНО: Отправляем webhook немедленно
+            checkBreakExceeded(originalBreakStart, user.name);
           } else {
             console.log(`ℹ️ ${userName} started a new break. Original monitoring cancelled.`);
           }
         } else {
           console.log(`✅ ${userName} has already ended their break. No webhook needed.`);
         }
-      } else {
-        console.error(`❌ Error checking break status for ${userName}:`, error);
       }
       
       // Удаляем таймер из активных
       activeBreakTimers.delete(userId);
+      console.log(`🗑️ Removed timer for user ${userId}. Active timers: ${activeBreakTimers.size}`);
+      
     } catch (error) {
       console.error(`🚨 Error in break monitoring for ${userName}:`, error);
       activeBreakTimers.delete(userId);
     }
-  }, MAX_BREAK_TIME * 1000); // 1 hour in milliseconds
+  }, MAX_BREAK_TIME * 1000); // ТОЧНО 1 час = 3600000 миллисекунд
   
   // Сохраняем таймер
   activeBreakTimers.set(userId, timerId);
   console.log(`✅ Break timer set for user ${userId}. Active timers: ${activeBreakTimers.size}`);
+  console.log(`⏰ Timer will fire in exactly ${MAX_BREAK_TIME} seconds (${MAX_BREAK_TIME / 60} minutes)`);
 };
 
-// ДОБАВЛЕНО: Функция для отмены мониторинга перерыва
+// Функция для отмены мониторинга перерыва
 const cancelBreakMonitoring = (userId: number) => {
   if (activeBreakTimers.has(userId)) {
     clearTimeout(activeBreakTimers.get(userId)!);
@@ -273,7 +285,7 @@ const cancelBreakMonitoring = (userId: number) => {
   }
 };
 
-// ДОБАВЛЕНО: Функция для проверки текущих активных перерывов при загрузке
+// КРИТИЧЕСКИ ИСПРАВЛЕНО: Инициализация мониторинга для существующих перерывов
 const initializeBreakMonitoring = async () => {
   try {
     console.log('🔄 Initializing break monitoring for existing breaks...');
@@ -299,12 +311,15 @@ const initializeBreakMonitoring = async () => {
         
         console.log(`👤 User ${user.name} (${user.id}): break duration ${breakDuration}s`);
         
-        if (breakDuration < MAX_BREAK_TIME) {
-          // Перерыв еще не превысил лимит, устанавливаем мониторинг
+        if (breakDuration >= MAX_BREAK_TIME) {
+          // КРИТИЧЕСКИ ВАЖНО: Перерыв уже превысил лимит, отправляем уведомление немедленно
+          console.log(`🚨 ${user.name} has already exceeded break limit by ${breakDuration - MAX_BREAK_TIME}s! Sending immediate webhook...`);
+          checkBreakExceeded(breakStartTime, user.name);
+        } else {
+          // Перерыв еще не превысил лимит, устанавливаем мониторинг на оставшееся время
           const remainingTime = MAX_BREAK_TIME - breakDuration;
           console.log(`⏰ Setting up monitoring for ${user.name} with ${remainingTime}s remaining`);
           
-          // Устанавливаем таймер на оставшееся время
           const timerId = setTimeout(async () => {
             try {
               // Проверяем статус пользователя
@@ -314,9 +329,15 @@ const initializeBreakMonitoring = async () => {
                 .eq('id', user.id)
                 .single();
 
-              if (!checkError && currentUser && currentUser.status === 'on_break') {
-                console.log(`🚨 ${currentUser.name} exceeded break limit! Sending webhook...`);
-                checkBreakExceeded(breakStartTime, currentUser.name);
+              if (!checkError && currentUser && currentUser.status === 'on_break' && currentUser.break_start_time) {
+                // Проверяем, что это тот же перерыв
+                const currentBreakStart = new Date(currentUser.break_start_time);
+                const timeDiff = Math.abs(currentBreakStart.getTime() - breakStartTime.getTime());
+                
+                if (timeDiff < 10000) { // Тот же перерыв
+                  console.log(`🚨 ${currentUser.name} exceeded break limit! Sending webhook...`);
+                  checkBreakExceeded(breakStartTime, currentUser.name);
+                }
               }
               
               activeBreakTimers.delete(user.id);
@@ -327,10 +348,6 @@ const initializeBreakMonitoring = async () => {
           }, remainingTime * 1000);
           
           activeBreakTimers.set(user.id, timerId);
-        } else {
-          // Перерыв уже превысил лимит, отправляем уведомление немедленно
-          console.log(`🚨 ${user.name} has already exceeded break limit! Sending immediate webhook...`);
-          checkBreakExceeded(breakStartTime, user.name);
         }
       }
       
@@ -408,8 +425,10 @@ export const authAPI = {
 
       console.log(`✅ Login successful for: ${credentials.email} (${user.name})`);
 
-      // ДОБАВЛЕНО: Инициализируем мониторинг перерывов при входе
-      initializeBreakMonitoring();
+      // КРИТИЧЕСКИ ВАЖНО: Инициализируем мониторинг перерывов при входе
+      setTimeout(() => {
+        initializeBreakMonitoring();
+      }, 500);
 
       return {
         user: userWithoutPassword as User,
@@ -753,7 +772,7 @@ export const timeLogsAPI = {
             updateData.work_start_time = now.toISOString();
           }
           
-          // Check for lateness using Tashkent time - ВОССТАНОВЛЕНО
+          // Check for lateness using Tashkent time
           if (user) {
             console.log(`🔍 Checking lateness for ${user.name}...`);
             checkLateness(now, user.name);
@@ -764,7 +783,7 @@ export const timeLogsAPI = {
           updateData.status = 'on_break';
           updateData.break_start_time = now.toISOString();
           
-          // Set up monitoring for break time exceeded - ИСПРАВЛЕНО
+          // КРИТИЧЕСКИ ВАЖНО: Устанавливаем мониторинг перерыва
           if (user) {
             console.log(`⏱️ Setting up break monitoring for ${user.name}...`);
             monitorBreakTime(userId, user.name, now);
@@ -775,7 +794,7 @@ export const timeLogsAPI = {
           updateData.status = 'working';
           updateData.break_start_time = null;
           
-          // ДОБАВЛЕНО: Отменяем мониторинг перерыва
+          // Отменяем мониторинг перерыва
           console.log(`🛑 Cancelling break monitoring for user ${userId}...`);
           cancelBreakMonitoring(userId);
           break;
@@ -788,7 +807,7 @@ export const timeLogsAPI = {
             updateData.work_start_time = null;
           }
           
-          // ДОБАВЛЕНО: Отменяем мониторинг перерыва при завершении работы
+          // Отменяем мониторинг перерыва при завершении работы
           console.log(`🛑 Cancelling break monitoring for user ${userId} (end work)...`);
           cancelBreakMonitoring(userId);
           break;
@@ -911,14 +930,6 @@ export const timeLogsAPI = {
     }
   },
 };
-
-// ДОБАВЛЕНО: Инициализируем мониторинг при загрузке модуля
-if (typeof window !== 'undefined') {
-  // Запускаем инициализацию только в браузере
-  setTimeout(() => {
-    initializeBreakMonitoring();
-  }, 1000); // Небольшая задержка для загрузки
-}
 
 // Export utility functions
 export { isWithinWorkingHours, WORK_START_HOUR, WORK_END_HOUR, MAX_BREAK_TIME, getTashkentTime, formatTashkentTime, convertToTashkentTime };
