@@ -33,24 +33,24 @@ const LoginForm: React.FC = () => {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
         
-        {/* Enhanced floating particles */}
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-purple-400 rounded-full opacity-40 animate-bounce"></div>
-        <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-pink-400 rounded-full opacity-80 animate-pulse"></div>
-        <div className="absolute top-1/2 right-1/3 w-2 h-2 bg-indigo-400 rounded-full opacity-50 animate-bounce"></div>
+        {/* ИСПРАВЛЕНО: Улучшено позиционирование плавающих элементов */}
+        <div className="absolute top-20 left-20 w-2 h-2 bg-blue-400 rounded-full opacity-30 animate-pulse"></div>
+        <div className="absolute top-32 right-32 w-3 h-3 bg-purple-400 rounded-full opacity-25 animate-bounce"></div>
+        <div className="absolute bottom-20 left-24 w-1 h-1 bg-pink-400 rounded-full opacity-40 animate-pulse"></div>
+        <div className="absolute bottom-32 right-24 w-2 h-2 bg-indigo-400 rounded-full opacity-30 animate-bounce"></div>
         
-        {/* New floating icons */}
-        <div className="absolute top-1/5 right-1/5 animate-float">
-          <Star className="w-4 h-4 text-yellow-300 opacity-40" />
+        {/* ИСПРАВЛЕНО: Перемещены декоративные иконки в безопасные зоны */}
+        <div className="absolute top-16 right-16 animate-float opacity-20">
+          <Star className="w-4 h-4 text-yellow-300" />
         </div>
-        <div className="absolute bottom-1/5 left-1/5 animate-float-delayed">
-          <Heart className="w-5 h-5 text-pink-300 opacity-35" />
+        <div className="absolute bottom-16 left-16 animate-float-delayed opacity-20">
+          <Heart className="w-5 h-5 text-pink-300" />
         </div>
-        <div className="absolute top-2/3 left-1/6 animate-float">
-          <Waves className="w-3 h-3 text-cyan-300 opacity-30" />
+        <div className="absolute top-40 left-32 animate-float opacity-15">
+          <Waves className="w-3 h-3 text-cyan-300" />
         </div>
-        <div className="absolute bottom-1/3 right-1/6 animate-float-delayed">
-          <Wind className="w-4 h-4 text-blue-300 opacity-25" />
+        <div className="absolute bottom-40 right-32 animate-float-delayed opacity-15">
+          <Wind className="w-4 h-4 text-blue-300" />
         </div>
       </div>
 
@@ -62,14 +62,15 @@ const LoginForm: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-50 animate-pulse"></div>
               <LogIn className="w-10 h-10 text-white relative z-10" />
             </div>
-            <div className="absolute -top-2 -right-2">
-              <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse" />
+            {/* ИСПРАВЛЕНО: Уменьшены размеры и улучшено позиционирование декоративных иконок */}
+            <div className="absolute -top-1 -right-1 opacity-60">
+              <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
             </div>
-            <div className="absolute -bottom-2 -left-2">
-              <Zap className="w-5 h-5 text-blue-400 animate-bounce" />
+            <div className="absolute -bottom-1 -left-1 opacity-60">
+              <Zap className="w-4 h-4 text-blue-400 animate-bounce" />
             </div>
-            <div className="absolute -top-1 -left-1">
-              <Star className="w-4 h-4 text-pink-400 animate-pulse" />
+            <div className="absolute top-1 left-1 opacity-50">
+              <Star className="w-3 h-3 text-pink-400 animate-pulse" />
             </div>
           </div>
           
