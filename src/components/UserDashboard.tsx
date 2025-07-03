@@ -283,23 +283,15 @@ const UserDashboard: React.FC = () => {
     return { text: 'Доброй ночи', icon: Moon, color: 'from-indigo-500 via-purple-500 to-pink-500', bgColor: 'from-indigo-50 to-purple-50' };
   };
 
-  // ИСПРАВЛЕНО: Функция для извлечения имени из формата Ф.И.О
+  // ИСПРАВЛЕНО: Extract first name from full name (берем второе слово для формата Ф.И.О)
   const getFirstName = (fullName: string) => {
     const nameParts = fullName.trim().split(' ');
-    
-    // Если есть минимум 2 части (Фамилия Имя или Фамилия Имя Отчество)
+    // Для формата Ф.И.О берем второе слово (имя)
     if (nameParts.length >= 2) {
-      // Возвращаем второе слово (имя) из формата Ф.И.О
-      return nameParts[1];
+      return nameParts[1]; // Второе слово - это имя
     }
-    
     // Если только одно слово, возвращаем его
-    if (nameParts.length === 1) {
-      return nameParts[0];
-    }
-    
-    // Если имя пустое, возвращаем "Пользователь"
-    return 'Пользователь';
+    return nameParts[0] || 'Пользователь';
   };
 
   const formatTime = (date: Date) => {
