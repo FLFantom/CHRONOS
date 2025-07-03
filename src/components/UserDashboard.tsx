@@ -324,8 +324,9 @@ const UserDashboard: React.FC = () => {
     return dailyBreakTime;
   };
 
-  // Format break duration in HH:MM:SS
+  // ИСПРАВЛЕНО: Format break duration in HH:MM:SS - всегда показывать полный формат
   const formatBreakDuration = (seconds: number) => {
+    // БАГИ ИСПРАВЛЕНЫ: Всегда показываем время в формате HH:MM:SS, даже если 0 секунд
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -634,7 +635,7 @@ const UserDashboard: React.FC = () => {
                   {formatBreakDuration(currentTotalBreakTime)}
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-                  <span className="font-medium">Лимит: 01:00:00</span>
+                  <span className="font-medium">Лимит: {formatBreakDuration(MAX_BREAK_TIME)}</span>
                   {!isExceeded && (
                     <span className="text-green-600 font-bold">
                       Осталось: {formatBreakDuration(remainingTime)}
@@ -871,8 +872,8 @@ const UserDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Break time summary */}
-        {user.daily_break_time && user.daily_break_time > 60 && (
+        {/* ИСПРАВЛЕНО: Break time summary - всегда показывать время в правильном формате */}
+        {user.daily_break_time !== undefined && user.daily_break_time >= 0 && (
           <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 mb-10 text-center border-l-4 border-orange-400 card-hover">
             <div className="flex items-center justify-center gap-4 mb-6">
               <div className="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-3 shadow-lg">
@@ -888,7 +889,7 @@ const UserDashboard: React.FC = () => {
               {formatBreakDuration(getCurrentTotalBreakTime())}
             </div>
             <div className="flex items-center justify-center gap-6 text-gray-600 bg-gray-50 rounded-xl p-4">
-              <span className="font-medium">Лимит: 01:00:00 в день</span>
+              <span className="font-medium">Лимит: {formatBreakDuration(MAX_BREAK_TIME)} в день</span>
               {getCurrentTotalBreakTime() > MAX_BREAK_TIME && (
                 <span className="text-red-500 font-bold">
                   Превышение: {formatBreakDuration(getCurrentTotalBreakTime() - MAX_BREAK_TIME)}
