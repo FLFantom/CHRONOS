@@ -293,7 +293,7 @@ const AdminPanel: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Панель администратора
+                  Доброе утро, Admin!
                 </h1>
                 <div className="flex items-center text-gray-600 text-sm">
                   <Calendar className="w-4 h-4 mr-2" />
