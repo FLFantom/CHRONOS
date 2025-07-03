@@ -7,7 +7,7 @@ import {
   Settings, 
   LogOut, 
   Shield, 
-  User,
+  User as UserIcon,
   Calendar,
   Activity,
   Coffee,
@@ -350,7 +350,7 @@ const UserDashboard: React.FC = () => {
                     <span>{formatDisplayDate(currentTime)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
+                    <UserIcon className="w-4 h-4" />
                     <span className="capitalize">{user.role === 'admin' ? 'Администратор' : 'Сотрудник'}</span>
                   </div>
                 </div>
